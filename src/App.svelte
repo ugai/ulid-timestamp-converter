@@ -5,7 +5,7 @@
   import Icon from "mdi-svelte";
   import { mdiGithub, mdiThemeLightDark } from "@mdi/js";
 
-  const title = 'ULID DateTime converter';
+  const title = "ULID DateTime converter";
 
   // dynamic theming {{{
   const darkTheme = "dark";
@@ -97,7 +97,7 @@
 </script>
 
 <svelte:head>
-	<title>{title}</title>
+  <title>{title}</title>
   <style>
     @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans&display=swap");
 
