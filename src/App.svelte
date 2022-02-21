@@ -13,9 +13,9 @@
   let currentTheme;
 
   const darkThemeAttr = "dark-theme";
-  const prefferedDark = "(prefers-color-scheme: dark)";
-  const prefferedTheme = () => {
-    return window.matchMedia(prefferedDark).matches ? darkTheme : lightTheme;
+  const preferredDark = "(prefers-color-scheme: dark)";
+  const preferredTheme = () => {
+    return window.matchMedia(preferredDark).matches ? darkTheme : lightTheme;
   };
   const updateTheme = (theme) => {
     if (theme == darkTheme) {
@@ -91,7 +91,7 @@
   const clearUlid = () => (inputUlid = "");
 
   onMount(() => {
-    currentTheme = prefferedTheme();
+    currentTheme = preferredTheme();
     generateUlid();
   });
 </script>
