@@ -101,25 +101,58 @@
   <style>
     @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans&display=swap");
 
+    :root {
+      /*
+       * based on the color palette from the IBM Carbon Design System.
+       * https://www.carbondesignsystem.com/guidelines/color/overview/
+       */
+      --gray10: #f4f4f4;
+      --gray20: #e0e0e0;
+      --gray80: #393939;
+      --gray90: #262626;
+      --gray100: #161616;
+      --red60: #da1e28;
+    }
+
+    /* light theme */
+
     body {
       font-family: "IBM Plex Sans", sans-serif;
-      background-color: #f4f4f4; /* Gray 10 */
-      color: #161616; /* Gray 100 */
+      background-color: var(--gray10);
+      color: var(--gray100);
     }
 
     .button {
-      background-color: #e0e0e0; /* Gray 20 */
-      color: #161616; /* Gray 100 */
+      background-color: var(--gray20);
+      color: var(--gray100);
     }
 
+    a:link,
+    a:visited,
+    a:hover,
+    a:active {
+      background-color: var(--gray10);
+      color: var(--gray100);
+    }
+
+    /* dark theme */
+
     body[dark-theme] {
-      background-color: #262626; /* Gray 90 */
-      color: #f4f4f4; /* Gray 10 */
+      background-color: var(--gray90);
+      color: var(--gray10);
     }
 
     body[dark-theme] *.button {
-      background-color: #393939; /* Gray 80 */
-      color: #f4f4f4; /* Gray 10 */
+      background-color: var(--gray80);
+      color: var(--gray10);
+    }
+
+    body[dark-theme] a:link,
+    body[dark-theme] a:visited,
+    body[dark-theme] a:hover,
+    body[dark-theme] a:active {
+      background-color: var(--gray90);
+      color: var(--gray10);
     }
   </style>
 </svelte:head>
@@ -191,7 +224,7 @@
   }
 
   .error-message {
-    color: #da1e28; /* Red 60 */
+    color: var(--red60);
   }
 
   dl {
