@@ -1,5 +1,5 @@
 {
-  "name": "svelte-app",
+  "name": "ulid-datetime-converter",
   "version": "1.0.0",
   "private": true,
   "scripts": {
