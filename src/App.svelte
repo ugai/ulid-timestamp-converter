@@ -31,6 +31,11 @@
   $: updateTheme(currentTheme);
   // }}} dynamic theming
 
+  const fullLength = 26;
+  const timestampLength = 10;
+  const randomnessLength = 16;
+  const crockfordBase32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+  const hex = "0123456789ABCDEF";
   const defaultDateTimeFormat = new Intl.DateTimeFormat([], {
     year: "numeric",
     month: "numeric",
@@ -44,31 +49,44 @@
   let inputUlid = "";
   let errorMessage = "";
 
+  let success = false;
+  let modifiedUlid = "";
   let timestampPart = "";
   let epochInMilliseconds = "";
   let dateLocal = "";
   let dateLocalISO = "";
   let dateLocalDateTimeFormat = "";
 
+  let base32Values = [];
+  let decValues = [];
+  let binValues = [];
+  let binAll = "";
+  let hexAll = "";
+
   const clearOutputs = () => {
+    modifiedUlid = "";
     timestampPart = "";
     epochInMilliseconds = "";
     dateLocal = "";
     dateLocalISO = "";
     dateLocalDateTimeFormat = "";
+
+    base32Values = [];
+    decValues = [];
+    binValues = [];
+    binAll = "";
+    hexAll = "";
   };
 
   $: {
-    const fullLength = 26;
-    const timestampLength = 10;
-
     if (inputUlid) {
       try {
-        let v = inputUlid.slice(); // clone
+        let v = inputUlid.toUpperCase(); // clone
         if (v.length >= timestampLength && v.length < fullLength) {
           v += "0".repeat(fullLength - v.length); // fill random part
         }
 
+        modifiedUlid = v;
         timestampPart = v.slice(0, timestampLength);
 
         epochInMilliseconds = decodeTime(v);
@@ -77,13 +95,55 @@
         dateLocalISO = dateLocal.toISOString();
         dateLocalDateTimeFormat = defaultDateTimeFormat.format(dateLocal);
 
+        // my parser {{{
+        base32Values = timestampPart.split("");
+        decValues = [];
+        binValues = [];
+
+        // base32 -> decimal, binary
+        for (const [i, hexChar] of base32Values.entries()) {
+          const dec = crockfordBase32.indexOf(hexChar);
+          decValues.push(dec);
+
+          let bin = "";
+          for (let pos = 4; pos >= 0; pos--) {
+            bin += (dec & (1 << pos)) > 0 ? "1" : "0";
+          }
+          binValues.push(bin);
+        }
+        binValues[0] = binValues[0].slice(2);
+
+        binAll = binValues.join("");
+
+        // binary -> hex
+        hexAll = "";
+        let total = 0;
+        for (const [i, binChar] of binAll.split("").reverse().entries()) {
+          const pos = i % 4;
+          if (pos === 0) {
+            total = 0;
+          }
+
+          if (binChar == "1") {
+            total += 1 << pos;
+          }
+
+          if (pos === 3) {
+            hexAll = hex[total] + hexAll;
+          }
+        }
+        // }}} my parser
+
         errorMessage = "";
+        success = true;
       } catch (e) {
         clearOutputs();
         errorMessage = e.message;
+        success = false;
       }
     } else {
       clearOutputs();
+      success = false;
     }
   }
 
@@ -99,132 +159,137 @@
 <svelte:head>
   <title>{title}</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans&display=swap");
-
-    :root {
-      /*
-       * based on the color palette from the IBM Carbon Design System.
-       * https://www.carbondesignsystem.com/guidelines/color/overview/
-       */
-      --gray10: #f4f4f4;
-      --gray20: #e0e0e0;
-      --gray80: #393939;
-      --gray90: #262626;
-      --gray100: #161616;
-      --red60: #da1e28;
-    }
-
-    /* light theme */
-
-    body {
-      font-family: "IBM Plex Sans", sans-serif;
-      background-color: var(--gray10);
-      color: var(--gray100);
-    }
-
-    .button {
-      background-color: var(--gray20);
-      color: var(--gray100);
-    }
-
-    a:link,
-    a:visited,
-    a:hover,
-    a:active {
-      background-color: var(--gray10);
-      color: var(--gray100);
-    }
-
-    /* dark theme */
-
-    body[dark-theme] {
-      background-color: var(--gray90);
-      color: var(--gray10);
-    }
-
-    body[dark-theme] *.button {
-      background-color: var(--gray80);
-      color: var(--gray10);
-    }
-
-    body[dark-theme] a:link,
-    body[dark-theme] a:visited,
-    body[dark-theme] a:hover,
-    body[dark-theme] a:active {
-      background-color: var(--gray90);
-      color: var(--gray10);
-    }
   </style>
 </svelte:head>
 
 <main>
   <div class="theme-toggle">
-    <button class="button" on:click={toggleTheme}>
+    <button class="button" on:click={toggleTheme} aria-label="Toggle theme">
       <Icon path={mdiThemeLightDark} />
     </button>
-    <a class="button" href="https://github.com/ugai/ulid-datetime-converter/">
+    <a
+      class="button"
+      target="_blank"
+      href="https://github.com/ugai/ulid-datetime-converter/"
+      aria-label="GitHub"
+    >
       <Icon path={mdiGithub} />
     </a>
   </div>
 
   <h1 class="title">{title}</h1>
 
-  <h2 class="label-text">Input</h2>
+  <h2>Input</h2>
   <div class="group">
+    <input
+      class="mono"
+      type="text"
+      size="40"
+      placeholder="Enter ULID here"
+      bind:value={inputUlid}
+    />
+    {#if errorMessage}
+      <span class="error-message" aria-live="polite">
+        {errorMessage}
+      </span>
+    {/if}
+
     <div>
-      <input
-        class="ulid-input"
-        type="text"
-        size="40"
-        placeholder="Enter ULID here"
-        bind:value={inputUlid}
-      />
-      {#if errorMessage}
-        <span class="error-message" aria-live="polite">
-          {errorMessage}
-        </span>
-      {/if}
+      <button class="button" on:click={clearUlid} disabled={!inputUlid}>
+        Clear
+      </button>
+      <button class="button" on:click={generateUlid}> Generate ULID </button>
     </div>
-    <button class="button" on:click={clearUlid} disabled={!inputUlid}
-      >Clear</button
-    >
-    <button class="button" on:click={generateUlid}>Generate ULID</button>
   </div>
 
+  <h2>Output</h2>
   <div class="group">
-    <h2 class="label-text">Output</h2>
-    <dl class="no-bottom-margin">
-      <dt>ULID timestamp:</dt>
-      <dd>{timestampPart}</dd>
+    <dl class="margin-top-0">
+      <dt>ULID</dt>
+      <dd class="mono">{modifiedUlid}</dd>
 
-      <dt>Epoch time (milliseconds):</dt>
-      <dd>{epochInMilliseconds}</dd>
+      <dt>ULID timestamp</dt>
+      <dd class="mono">{timestampPart}</dd>
 
-      <dt>Date:</dt>
-      <dd>{dateLocal}</dd>
+      <dt>Epoch time (milliseconds)</dt>
+      <dd class="mono">{epochInMilliseconds}</dd>
 
-      <dt>Date (ISO format):</dt>
-      <dd>{dateLocalISO}</dd>
+      <dt>Date</dt>
+      <dd class="mono">{dateLocal}</dd>
 
-      <dt>Date (DateTimeFormat):</dt>
-      <dd>{dateLocalDateTimeFormat}</dd>
+      <dt>Date (ISO format)</dt>
+      <dd class="mono">{dateLocalISO}</dd>
+
+      <dt>Date (DateTimeFormat)</dt>
+      <dd class="mono">{dateLocalDateTimeFormat}</dd>
     </dl>
+
+    {#if success}
+      <table>
+        <thead class="text-center">
+          <tr>
+            <th class="no-border" />
+            <th colspan={timestampLength}>ULID timestamp (48-bit)</th>
+          </tr>
+        </thead>
+        <tbody class="mono">
+          <tr>
+            <th
+              ><a target="_blank" href="http://www.crockford.com/base32.html"
+                >base32</a
+              ></th
+            >
+            {#each base32Values as base32Char}
+              <td class="text-right">{base32Char}</td>
+            {/each}
+          </tr>
+          <tr>
+            <th>dec</th>
+            {#each decValues as dec}
+              <td class="text-right">{dec}</td>
+            {/each}
+          </tr>
+          <tr>
+            <th rowspan="2">bin</th>
+            {#each binValues as bin}
+              <td class="text-right small">{bin}</td>
+            {/each}
+          </tr>
+          <tr>
+            <td class="text-center small" colspan={timestampLength}>{binAll}</td
+            >
+          </tr>
+          <tr>
+            <th>hex</th>
+            <td class="text-center small" colspan={timestampLength}>{hexAll}</td
+            >
+          </tr>
+        </tbody>
+      </table>
+    {/if}
   </div>
 </main>
 
 <style>
-  main {
-    padding: 0 16px;
-    max-width: 960px;
-  }
-
   .theme-toggle {
     float: right;
     margin: 0 8px;
   }
 
-  .error-message {
-    color: var(--red60);
+  table {
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    border: 1px solid gray;
+    padding: 0.3em;
+    white-space: nowrap;
+  }
+
+  th.no-border {
+    border: none;
+    background-color: transparent;
   }
 
   dl {

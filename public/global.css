@@ -1,63 +1,125 @@
-html, body {
-	position: relative;
-	width: 100%;
-	height: 100%;
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans&display=swap");
+
+:root {
+  /*
+   * based on the color palette from the IBM Carbon Design System.
+   * https://www.carbondesignsystem.com/guidelines/color/overview/
+   */
+  --gray10: #f4f4f4;
+  --gray20: #e0e0e0;
+  --gray30: #c6c6c6;
+  --gray70: #525252;
+  --gray80: #393939;
+  --gray90: #262626;
+  --gray100: #161616;
+  --red60: #da1e28;
+  --red30: #ffb3b8;
+  --blue60: #0f62fe;
+  --blue40: #78a9ff;
 }
 
+input,
+button {
+  padding: 8px;
+  margin: 4px;
+}
+
+/* light theme */
+
 body {
-	color: #333;
-	margin: 0;
-	padding: 8px;
-	box-sizing: border-box;
-	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  font-family: "IBM Plex Sans", sans-serif;
+  padding: 0 8px;
+  max-width: 960px;
+  background-color: var(--gray10);
+  color: var(--gray100);
+}
+
+.button {
+  background-color: var(--gray20);
+  color: var(--gray100);
+  border-width: 1px;
+}
+
+.group {
+  border: 1px solid var(--gray30);
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.error-message {
+  color: var(--red60);
+}
+
+th {
+  background-color: var(--gray20);
+  font-weight: normal;
 }
 
 a {
-	color: rgb(0,100,200);
-	text-decoration: none;
+  color: var(--blue60);
 }
 
-a:hover {
-	text-decoration: underline;
+a:any-link.button {
+  background-color: var(--gray10);
+  color: var(--gray100);
 }
 
-a:visited {
-	color: rgb(0,80,160);
+/* dark theme */
+
+body[dark-theme] {
+  background-color: var(--gray90);
+  color: var(--gray10);
 }
 
-label {
-	display: block;
+body[dark-theme] .button {
+  background-color: var(--gray80);
+  color: var(--gray10);
 }
 
-input, button, select, textarea {
-	font-family: inherit;
-	font-size: inherit;
-	-webkit-padding: 0.4em 0;
-	padding: 0.4em;
-	margin: 0 0 0.5em 0;
-	box-sizing: border-box;
-	border: 1px solid #ccc;
-	border-radius: 2px;
+body[dark-theme] .group {
+  border: 1px solid var(--gray70);
 }
 
-input:disabled {
-	color: #ccc;
+body[dark-theme] .error-message {
+  color: var(--red30);
 }
 
-button {
-	color: #333;
-	background-color: #f4f4f4;
-	outline: none;
+body[dark-theme] th {
+  background-color: var(--gray80);
 }
 
-button:disabled {
-	color: #999;
+body[dark-theme] a {
+  color: var(--blue40);
 }
 
-button:not(:disabled):active {
-	background-color: #ddd;
+body[dark-theme] a:any-link.button {
+  background-color: var(--gray90);
+  color: var(--gray10);
 }
 
-button:focus {
-	border-color: #666;
+/* utils */
+
+.mono {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.margin-top-0 {
+  margin-top: 0;
+}
+
+.margin-bottom-0 {
+  margin-bottom: 0;
+}
+
+.small {
+  font-size: small;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-center {
+  text-align: center;
 }
