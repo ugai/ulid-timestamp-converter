@@ -1,11 +1,14 @@
 <script>
   import { onMount } from "svelte";
   import { ulid, decodeTime } from "ulid";
-
+  import { MetaTags } from "svelte-meta-tags";
   import Icon from "mdi-svelte";
   import { mdiGithub, mdiThemeLightDark } from "@mdi/js";
 
-  const title = "ULID DateTime converter";
+  const siteTitle = "ULID DateTime Converter";
+  const siteDescription = "An online datetime converter for the ULID";
+  const siteCanonicalLink = "https://ugai.github.io/ulid-datetime-converter/";
+  const repositoryUrl = "https://github.com/ugai/ulid-datetime-converter/";
 
   // dynamic theming {{{
   const darkTheme = "dark";
@@ -156,28 +159,17 @@
   });
 </script>
 
-<svelte:head>
-  <title>{title}</title>
-  <style>
-  </style>
-</svelte:head>
-
 <main>
   <div class="theme-toggle">
     <button class="button" on:click={toggleTheme} aria-label="Toggle theme">
       <Icon path={mdiThemeLightDark} />
     </button>
-    <a
-      class="button"
-      target="_blank"
-      href="https://github.com/ugai/ulid-datetime-converter/"
-      aria-label="GitHub"
-    >
+    <a class="button" target="_blank" href={repositoryUrl} aria-label="GitHub">
       <Icon path={mdiGithub} />
     </a>
   </div>
 
-  <h1 class="title">{title}</h1>
+  <h1 class="title">{siteTitle}</h1>
 
   <h2>Input</h2>
   <div class="group">
@@ -229,7 +221,7 @@
         <thead class="text-center">
           <tr>
             <th class="no-border" />
-            <th colspan={timestampLength}>ULID timestamp (48-bit)</th>
+            <th colspan={timestampLength}>timestamp (48-bit)</th>
           </tr>
         </thead>
         <tbody class="mono">
@@ -269,6 +261,12 @@
     {/if}
   </div>
 </main>
+
+<MetaTags
+  title={siteTitle}
+  description={siteDescription}
+  canonical={siteCanonicalLink}
+/>
 
 <style>
   .theme-toggle {
