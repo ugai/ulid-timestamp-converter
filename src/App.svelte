@@ -1,9 +1,10 @@
 <script>
   import { onMount } from "svelte";
-  import { ulid, decodeTime } from "ulid";
+  import { ulid, encodeTime, decodeTime } from "ulid";
   import { MetaTags } from "svelte-meta-tags";
   import Icon from "mdi-svelte";
   import { mdiGithub, mdiThemeLightDark } from "@mdi/js";
+  import { validate_store } from "svelte/internal";
 
   const siteTitle = "ULID DateTime Converter";
   const siteDescription = "An online datetime converter for the ULID";
@@ -39,6 +40,8 @@
   const randomnessLength = 16;
   const crockfordBase32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
   const hex = "0123456789ABCDEF";
+
+  // https://tc39.es/ecma402/#table-datetimeformat-components
   const defaultDateTimeFormat = new Intl.DateTimeFormat([], {
     year: "numeric",
     month: "numeric",
@@ -46,11 +49,16 @@
     hour: "numeric",
     minute: "numeric",
     second: "numeric",
+    fractionalSecondDigits: 3,
+    timeZoneName: "short",
     hour12: false,
   });
 
   let inputUlid = "";
-  let errorMessage = "";
+  let inputUlidErrorMessage = "";
+
+  let inputDateTime = "";
+  let inputDateTimeErrorMessage = "";
 
   let success = false;
   let modifiedUlid = "";
@@ -58,7 +66,7 @@
   let epochInMilliseconds = "";
   let dateLocal = "";
   let dateLocalISO = "";
-  let dateLocalDateTimeFormat = "";
+  let dateLocalNumeric = "";
 
   let base32Values = [];
   let decValues = [];
@@ -66,13 +74,13 @@
   let binAll = "";
   let hexAll = "";
 
-  const clearOutputs = () => {
+  const clearOutput = () => {
     modifiedUlid = "";
     timestampPart = "";
     epochInMilliseconds = "";
     dateLocal = "";
     dateLocalISO = "";
-    dateLocalDateTimeFormat = "";
+    dateLocalNumeric = "";
 
     base32Values = [];
     decValues = [];
@@ -81,77 +89,115 @@
     hexAll = "";
   };
 
-  $: {
-    if (inputUlid) {
-      try {
-        let v = inputUlid.toUpperCase(); // clone
-        if (v.length >= timestampLength && v.length < fullLength) {
-          v += "0".repeat(fullLength - v.length); // fill random part
-        }
+  const updateOutput = (timestampPart, epochInMilliseconds) => {
+    dateLocal = new Date(epochInMilliseconds);
+    dateLocalISO = dateLocal.toISOString();
+    dateLocalNumeric = defaultDateTimeFormat.format(dateLocal);
 
-        modifiedUlid = v;
-        timestampPart = v.slice(0, timestampLength);
+    // my parser {{{
+    base32Values = timestampPart.split("");
+    decValues = [];
+    binValues = [];
 
-        epochInMilliseconds = decodeTime(v);
+    // base32 -> decimal, binary
+    for (const [i, hexChar] of base32Values.entries()) {
+      const dec = crockfordBase32.indexOf(hexChar);
+      decValues.push(dec);
 
-        dateLocal = new Date(epochInMilliseconds);
-        dateLocalISO = dateLocal.toISOString();
-        dateLocalDateTimeFormat = defaultDateTimeFormat.format(dateLocal);
-
-        // my parser {{{
-        base32Values = timestampPart.split("");
-        decValues = [];
-        binValues = [];
-
-        // base32 -> decimal, binary
-        for (const [i, hexChar] of base32Values.entries()) {
-          const dec = crockfordBase32.indexOf(hexChar);
-          decValues.push(dec);
-
-          let bin = "";
-          for (let pos = 4; pos >= 0; pos--) {
-            bin += (dec & (1 << pos)) > 0 ? "1" : "0";
-          }
-          binValues.push(bin);
-        }
-        binValues[0] = binValues[0].slice(2);
-
-        binAll = binValues.join("");
-
-        // binary -> hex
-        hexAll = "";
-        let total = 0;
-        for (const [i, binChar] of binAll.split("").reverse().entries()) {
-          const pos = i % 4;
-          if (pos === 0) {
-            total = 0;
-          }
-
-          if (binChar == "1") {
-            total += 1 << pos;
-          }
-
-          if (pos === 3) {
-            hexAll = hex[total] + hexAll;
-          }
-        }
-        // }}} my parser
-
-        errorMessage = "";
-        success = true;
-      } catch (e) {
-        clearOutputs();
-        errorMessage = e.message;
-        success = false;
+      let bin = "";
+      for (let pos = 4; pos >= 0; pos--) {
+        bin += (dec & (1 << pos)) > 0 ? "1" : "0";
       }
-    } else {
-      clearOutputs();
+      binValues.push(bin);
+    }
+    binValues[0] = binValues[0].slice(2);
+
+    binAll = binValues.join("");
+
+    // binary -> hex
+    hexAll = "";
+    let total = 0;
+    for (const [i, binChar] of binAll.split("").reverse().entries()) {
+      const pos = i % 4;
+      if (pos === 0) {
+        total = 0;
+      }
+
+      if (binChar == "1") {
+        total += 1 << pos;
+      }
+
+      if (pos === 3) {
+        hexAll = hex[total] + hexAll;
+      }
+    }
+    // }}} my parser
+  };
+
+  $: convertFromUlid(inputUlid);
+  $: convertFromDateTime(inputDateTime);
+
+  const convertFromUlid = (v) => {
+    if (!v) {
+      clearOutput();
+      success = false;
+      return;
+    }
+
+    try {
+      v = v.toUpperCase(); // clone
+      if (v.length >= timestampLength && v.length < fullLength) {
+        v += "0".repeat(fullLength - v.length); // fill random part
+      }
+
+      modifiedUlid = v;
+      timestampPart = v.slice(0, timestampLength);
+      epochInMilliseconds = decodeTime(v);
+
+      updateOutput(timestampPart, epochInMilliseconds);
+
+      inputUlidErrorMessage = "";
+      success = true;
+    } catch (e) {
+      clearOutput();
+      inputUlidErrorMessage = e.message;
       success = false;
     }
-  }
+  };
+
+  const convertFromDateTime = (v) => {
+    if (!v) {
+      clearOutput();
+      success = false;
+      return;
+    }
+
+    try {
+      epochInMilliseconds = new Date(v).getTime();
+      timestampPart = encodeTime(epochInMilliseconds, timestampLength);
+      const randompart = ulid().toString().slice(timestampLength);
+      modifiedUlid = timestampPart + randompart;
+
+      updateOutput(timestampPart, epochInMilliseconds);
+
+      inputDateTimeErrorMessage = "";
+      success = true;
+    } catch (e) {
+      clearOutput();
+      inputDateTimeErrorMessage = e.message;
+      success = false;
+    }
+  };
 
   const generateUlid = () => (inputUlid = ulid().toString());
   const clearUlid = () => (inputUlid = "");
+
+  const setDateTimeNow = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    inputDateTime = now.toISOString().slice(0, -1);
+  };
+  const clearDateTime = () => (inputDateTime = "");
 
   onMount(() => {
     currentTheme = preferredTheme();
@@ -180,17 +226,49 @@
       placeholder="Enter ULID here"
       bind:value={inputUlid}
     />
-    {#if errorMessage}
+    {#if inputUlidErrorMessage}
       <span class="error-message" aria-live="polite">
-        {errorMessage}
+        {inputUlidErrorMessage}
       </span>
     {/if}
+    <button
+      class="button"
+      on:click={() => convertFromUlid(inputUlid)}
+      disabled={!inputUlid}
+    >
+      Convert
+    </button>
 
     <div>
       <button class="button" on:click={clearUlid} disabled={!inputUlid}>
         Clear
       </button>
       <button class="button" on:click={generateUlid}> Generate ULID </button>
+    </div>
+  </div>
+  <div class="group">
+    <input
+      type="datetime-local"
+      step="0.001"
+      bind:value={inputDateTime}
+    />
+    {#if inputDateTimeErrorMessage}
+      <span class="error-message" aria-live="polite">
+        {inputDateTimeErrorMessage}
+      </span>
+    {/if}
+    <button
+      class="button"
+      on:click={() => convertFromDateTime(inputDateTime)}
+      disabled={!inputDateTime}
+    >
+      Convert
+    </button>
+    <div>
+      <button class="button" on:click={clearDateTime} disabled={!inputDateTime}>
+        Clear
+      </button>
+      <button class="button" on:click={setDateTimeNow}> Set Now </button>
     </div>
   </div>
 
@@ -209,11 +287,11 @@
       <dt>Date</dt>
       <dd class="mono">{dateLocal}</dd>
 
-      <dt>Date (ISO format)</dt>
+      <dt>Date (UTC ISO-8601)</dt>
       <dd class="mono">{dateLocalISO}</dd>
 
-      <dt>Date (DateTimeFormat)</dt>
-      <dd class="mono">{dateLocalDateTimeFormat}</dd>
+      <dt>Date (local numeric)</dt>
+      <dd class="mono">{dateLocalNumeric}</dd>
     </dl>
 
     {#if success}
