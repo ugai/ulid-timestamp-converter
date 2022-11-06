@@ -65,6 +65,14 @@ a:any-link.button {
   color: var(--gray100);
 }
 
+.ulid-part-timestamp {
+  color: darkcyan;
+}
+
+.ulid-part-random {
+  color: var(--gray100);
+}
+
 /* dark theme */
 
 body[dark-theme] {
@@ -95,6 +103,14 @@ body[dark-theme] a {
 
 body[dark-theme] a:any-link.button {
   background-color: var(--gray90);
+  color: var(--gray10);
+}
+
+body[dark-theme] .ulid-part-timestamp {
+  color: cyan;
+}
+
+body[dark-theme] .ulid-part-random {
   color: var(--gray10);
 }
 
