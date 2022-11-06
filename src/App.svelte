@@ -6,10 +6,10 @@
   import { mdiGithub, mdiThemeLightDark } from "@mdi/js";
   import { validate_store } from "svelte/internal";
 
-  const siteTitle = "ULID DateTime Converter";
-  const siteDescription = "An online datetime converter for the ULID";
-  const siteCanonicalLink = "https://ugai.github.io/ulid-datetime-converter/";
-  const repositoryUrl = "https://github.com/ugai/ulid-datetime-converter/";
+  const siteTitle = "ULID Timestamp Converter";
+  const siteDescription = "Online timestamp converter for the ULID";
+  const siteCanonicalLink = "https://ugai.github.io/ulid-timestamp-converter/";
+  const repositoryUrl = "https://github.com/ugai/ulid-timestamp-converter/";
 
   // dynamic theming {{{
   const darkTheme = "dark";
@@ -61,8 +61,8 @@
   let inputDateTimeErrorMessage = "";
 
   let success = false;
-  let modifiedUlid = "";
   let timestampPart = "";
+  let randomPart = "";
   let epochInMilliseconds = "";
   let dateLocal = "";
   let dateLocalISO = "";
@@ -75,8 +75,8 @@
   let hexAll = "";
 
   const clearOutput = () => {
-    modifiedUlid = "";
     timestampPart = "";
+    randomPart = "";
     epochInMilliseconds = "";
     dateLocal = "";
     dateLocalISO = "";
@@ -100,8 +100,8 @@
     binValues = [];
 
     // base32 -> decimal, binary
-    for (const [i, hexChar] of base32Values.entries()) {
-      const dec = crockfordBase32.indexOf(hexChar);
+    for (const [i, base32Char] of base32Values.entries()) {
+      const dec = crockfordBase32.indexOf(base32Char);
       decValues.push(dec);
 
       let bin = "";
@@ -111,10 +111,9 @@
       binValues.push(bin);
     }
     binValues[0] = binValues[0].slice(2);
-
     binAll = binValues.join("");
 
-    // binary -> hex
+    // binary -> hexadecimal
     hexAll = "";
     let total = 0;
     for (const [i, binChar] of binAll.split("").reverse().entries()) {
@@ -150,8 +149,8 @@
         v += "0".repeat(fullLength - v.length); // fill random part
       }
 
-      modifiedUlid = v;
       timestampPart = v.slice(0, timestampLength);
+      randomPart = v.slice(timestampLength);
       epochInMilliseconds = decodeTime(v);
 
       updateOutput(timestampPart, epochInMilliseconds);
@@ -175,8 +174,7 @@
     try {
       epochInMilliseconds = new Date(v).getTime();
       timestampPart = encodeTime(epochInMilliseconds, timestampLength);
-      const randompart = ulid().toString().slice(timestampLength);
-      modifiedUlid = timestampPart + randompart;
+      randomPart = ulid().toString().slice(timestampLength);
 
       updateOutput(timestampPart, epochInMilliseconds);
 
@@ -210,7 +208,13 @@
     <button class="button" on:click={toggleTheme} aria-label="Toggle theme">
       <Icon path={mdiThemeLightDark} />
     </button>
-    <a class="button" target="_blank" href={repositoryUrl} aria-label="GitHub">
+    <a
+      class="button"
+      target="_blank"
+      rel="noreferrer"
+      href={repositoryUrl}
+      aria-label="GitHub"
+    >
       <Icon path={mdiGithub} />
     </a>
   </div>
@@ -219,56 +223,45 @@
 
   <h2>Input</h2>
   <div class="group">
-    <input
-      class="mono"
-      type="text"
-      size="40"
-      placeholder="Enter ULID here"
-      bind:value={inputUlid}
-    />
-    {#if inputUlidErrorMessage}
-      <span class="error-message" aria-live="polite">
-        {inputUlidErrorMessage}
-      </span>
-    {/if}
-    <button
-      class="button"
-      on:click={() => convertFromUlid(inputUlid)}
-      disabled={!inputUlid}
-    >
-      Convert
-    </button>
+    <div>
+      <label for="ulid-input">From ULID</label>
+      <input
+        id="ulid-input"
+        class="mono"
+        type="text"
+        size="40"
+        placeholder="Enter ULID here"
+        bind:value={inputUlid}
+      />
+      {#if inputUlidErrorMessage}
+        <span class="error-message" aria-live="polite">
+          {inputUlidErrorMessage}
+        </span>
+      {/if}
 
-    <div>
-      <button class="button" on:click={clearUlid} disabled={!inputUlid}>
-        Clear
-      </button>
-      <button class="button" on:click={generateUlid}> Generate ULID </button>
+      <button class="button" on:click={clearUlid} disabled={!inputUlid}
+        >Clear</button
+      >
+      <button class="button" on:click={generateUlid}>Generate</button>
     </div>
-  </div>
-  <div class="group">
-    <input
-      type="datetime-local"
-      step="0.001"
-      bind:value={inputDateTime}
-    />
-    {#if inputDateTimeErrorMessage}
-      <span class="error-message" aria-live="polite">
-        {inputDateTimeErrorMessage}
-      </span>
-    {/if}
-    <button
-      class="button"
-      on:click={() => convertFromDateTime(inputDateTime)}
-      disabled={!inputDateTime}
-    >
-      Convert
-    </button>
     <div>
-      <button class="button" on:click={clearDateTime} disabled={!inputDateTime}>
-        Clear
-      </button>
-      <button class="button" on:click={setDateTimeNow}> Set Now </button>
+      <label for="datetime-input">From Date</label>
+      <input
+        id="datetime-input"
+        type="datetime-local"
+        step="0.001"
+        bind:value={inputDateTime}
+      />
+      {#if inputDateTimeErrorMessage}
+        <span class="error-message" aria-live="polite">
+          {inputDateTimeErrorMessage}
+        </span>
+      {/if}
+
+      <button class="button" on:click={clearDateTime} disabled={!inputDateTime}
+        >Clear</button
+      >
+      <button class="button" on:click={setDateTimeNow}>Now</button>
     </div>
   </div>
 
@@ -276,22 +269,21 @@
   <div class="group">
     <dl class="margin-top-0">
       <dt>ULID</dt>
-      <dd class="mono">{modifiedUlid}</dd>
-
-      <dt>ULID timestamp</dt>
-      <dd class="mono">{timestampPart}</dd>
-
-      <dt>Epoch time (milliseconds)</dt>
+      <dd class="mono">
+        <span class="ulid-part-timestamp">{timestampPart}</span><span
+          class="ulid-part-random">{randomPart}</span
+        >
+      </dd>
+      <dt>ULID Timestamp</dt>
+      <dd class="mono ulid-part-timestamp">{timestampPart}</dd>
+      <dt>Unix Timestamp (in milliseconds)</dt>
       <dd class="mono">{epochInMilliseconds}</dd>
-
-      <dt>Date</dt>
+      <dt>Date (Local)</dt>
       <dd class="mono">{dateLocal}</dd>
-
+      <dt>Date (Local Numeric)</dt>
+      <dd class="mono">{dateLocalNumeric}</dd>
       <dt>Date (UTC ISO-8601)</dt>
       <dd class="mono">{dateLocalISO}</dd>
-
-      <dt>Date (local numeric)</dt>
-      <dd class="mono">{dateLocalNumeric}</dd>
     </dl>
 
     {#if success}
@@ -299,28 +291,31 @@
         <thead class="text-center">
           <tr>
             <th class="no-border" />
-            <th colspan={timestampLength}>timestamp (48-bit)</th>
+            <th colspan={timestampLength}>Timestamp (48-bit)</th>
           </tr>
         </thead>
         <tbody class="mono">
           <tr>
-            <th
-              ><a target="_blank" href="http://www.crockford.com/base32.html"
-                >base32</a
-              ></th
-            >
+            <th>
+              Base 32
+              <a
+                target="_blank"
+                href="http://www.crockford.com/base32.html"
+                rel="noreferrer">?</a
+              >
+            </th>
             {#each base32Values as base32Char}
-              <td class="text-right">{base32Char}</td>
+              <td class="text-right ulid-part-timestamp">{base32Char}</td>
             {/each}
           </tr>
           <tr>
-            <th>dec</th>
+            <th>Decimal</th>
             {#each decValues as dec}
               <td class="text-right">{dec}</td>
             {/each}
           </tr>
           <tr>
-            <th rowspan="2">bin</th>
+            <th rowspan="2">Binary</th>
             {#each binValues as bin}
               <td class="text-right small">{bin}</td>
             {/each}
@@ -330,7 +325,7 @@
             >
           </tr>
           <tr>
-            <th>hex</th>
+            <th>Hexadecimal</th>
             <td class="text-center small" colspan={timestampLength}>{hexAll}</td
             >
           </tr>
@@ -368,6 +363,10 @@
     background-color: transparent;
   }
 
+  label {
+    font-weight: bold;
+  }
+
   dl {
     display: grid;
     grid-template-columns: max-content auto;
@@ -375,6 +374,13 @@
 
   dt {
     grid-column-start: 1;
+    font-weight: bold;
+  }
+
+  label::after,
+  dt::after {
+    content: ": ";
+    font-weight: normal;
   }
 
   dd {

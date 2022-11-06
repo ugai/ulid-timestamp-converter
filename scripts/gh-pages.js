@@ -5,7 +5,7 @@ ghpages.publish(
     {
         branch: 'gh-pages',
         silent: true,
-        repo: 'https://' + process.env.GITHUB_TOKEN + '@github.com/ugai/ulid-datetime-converter.git',
+        repo: 'https://' + process.env.GITHUB_TOKEN + '@github.com/ugai/ulid-timestamp-converter.git',
         user: {
             name: 'ugai',
             email: 'ugai.sub1@gmail.com'

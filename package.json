@@ -1,5 +1,5 @@
 {
-  "name": "ulid-datetime-converter",
+  "name": "ulid-timestamp-converter",
   "version": "1.0.0",
   "private": true,
   "scripts": {
