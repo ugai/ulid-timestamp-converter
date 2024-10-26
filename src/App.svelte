@@ -271,13 +271,13 @@
       </dd>
       <dt>ULID Timestamp</dt>
       <dd class="mono ulid-part-timestamp">{timestampPart}</dd>
-      <dt>Unix Timestamp (in milliseconds)</dt>
+      <dt>Unix Timestamp <span class="smaller">(in milliseconds)</span></dt>
       <dd class="mono">{epochInMilliseconds}</dd>
-      <dt>Date (Local)</dt>
+      <dt>Date <span class="smaller">(Local, default format)</span></dt>
       <dd class="mono">{dateLocal}</dd>
-      <dt>Date (Local Numeric)</dt>
+      <dt>Date <span class="smaller">(Local, numeric format)</span></dt>
       <dd class="mono">{dateLocalNumeric}</dd>
-      <dt>Date (UTC ISO-8601)</dt>
+      <dt>Date <span class="smaller">(UTC, ISO-8601)</span></dt>
       <dd class="mono">{dateLocalISO}</dd>
     </dl>
 
@@ -361,9 +361,15 @@
     grid-template-columns: max-content auto;
   }
 
+  dt span.smaller {
+    font-size: smaller;
+    font-weight: lighter;
+    filter: invert(0.2);
+  }
+
   dt {
     grid-column-start: 1;
-    font-weight: bold;
+    font-weight: normal;
   }
 
   label::after,
