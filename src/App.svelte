@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import { onMount } from "svelte";
   import { ulid, encodeTime, decodeTime } from "ulidx";
 
@@ -8,7 +10,7 @@
   // dynamic theming {{{
   const darkTheme = "dark";
   const lightTheme = "light";
-  let currentTheme: string = lightTheme;
+  let currentTheme: string = $state(lightTheme);
 
   const darkThemeAttr = "dark-theme";
   const preferredDark = "(prefers-color-scheme: dark)";
@@ -26,14 +28,15 @@
     currentTheme = currentTheme == darkTheme ? lightTheme : darkTheme;
   };
 
-  $: updateTheme(currentTheme);
+  $effect(() => {
+    updateTheme(currentTheme);
+  });
   // }}} dynamic theming
 
-  const fullLength = 26;
-  const timestampLength = 10;
-  const randomnessLength = 16;
-  const crockfordBase32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-  const hex = "0123456789ABCDEF";
+  const ULID_FULL_LENGTH = 26;
+  const ULID_TIMESTAMP_LENGTH = 10;
+  const CROCKFORD_BASE32_CHARS = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+  const HEX_CHARS = "0123456789ABCDEF";
 
   // https://tc39.es/ecma402/#table-datetimeformat-components
   const defaultDateTimeFormat = new Intl.DateTimeFormat([], {
@@ -48,159 +51,186 @@
     hour12: false,
   });
 
-  let inputUlid = "";
-  let inputUlidErrorMessage = "";
+  abstract class InputFieldBase {
+    value: string = $state("");
+    errorMessage: string = $state("");
 
-  let inputDateTime = "";
-  let inputDateTimeErrorMessage = "";
-
-  let success = false;
-  let timestampPart = "";
-  let randomPart = "";
-  let epochInMilliseconds = "";
-  let dateLocal = "";
-  let dateLocalISO = "";
-  let dateLocalNumeric = "";
-
-  let base32Values: string[] = [];
-  let decValues: number[] = [];
-  let binValues: string[] = [];
-  let binAll = "";
-  let hexAll = "";
-
-  const clearOutput = () => {
-    timestampPart = "";
-    randomPart = "";
-    epochInMilliseconds = "";
-    dateLocal = "";
-    dateLocalISO = "";
-    dateLocalNumeric = "";
-
-    base32Values = [];
-    decValues = [];
-    binValues = [];
-    binAll = "";
-    hexAll = "";
-  };
-
-  const updateOutput = (timestampPart: string, epochInMilliseconds: string) => {
-    const dt = new Date(Number(epochInMilliseconds));
-    dateLocal = dt.toString();
-    dateLocalISO = dt.toISOString();
-    dateLocalNumeric = defaultDateTimeFormat.format(dt);
-
-    // my parser {{{
-    base32Values = timestampPart.split("");
-    decValues = [];
-    binValues = [];
-
-    // base32 -> decimal, binary
-    for (const [i, base32Char] of base32Values.entries()) {
-      const dec = crockfordBase32.indexOf(base32Char);
-      decValues.push(dec);
-
-      let bin = "";
-      for (let pos = 4; pos >= 0; pos--) {
-        bin += (dec & (1 << pos)) > 0 ? "1" : "0";
-      }
-      binValues.push(bin);
+    clear() {
+      this.value = "";
+      this.errorMessage = "";
     }
-    binValues[0] = binValues[0].slice(2);
-    binAll = binValues.join("");
+  }
 
-    // binary -> hexadecimal
-    hexAll = "";
-    let total = 0;
-    for (const [i, binChar] of binAll.split("").reverse().entries()) {
-      const pos = i % 4;
-      if (pos === 0) {
-        total = 0;
-      }
-
-      if (binChar == "1") {
-        total += 1 << pos;
-      }
-
-      if (pos === 3) {
-        hexAll = hex[total] + hexAll;
-      }
+  class UlidInputField extends InputFieldBase {
+    set_random_value() {
+      this.value = ulid().toString();
     }
-    // }}} my parser
-  };
+  }
 
-  $: convertFromUlid(inputUlid);
-  $: convertFromDateTime(inputDateTime);
+  class DateTimeInputField extends InputFieldBase {
+    set_current_date() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      this.value = now.toISOString().slice(0, -1);
+    }
+  }
+
+  class OutputFields {
+    ulidTimestampPart: string = $state("");
+    ulidRandomnessPart: string = $state("");
+
+    epochInMs: string = $state("");
+    dateLocalDefault: string = $state("");
+    dateLocalNumeric: string = $state("");
+    dateUtcISO: string = $state("");
+
+    base32Values: string[] = $state([]);
+    decValues: number[] = $state([]);
+    binValues: string[] = $state([]);
+    binAll: string = $state("");
+    hexAll: string = $state("");
+
+    clear() {
+      this.ulidTimestampPart = "";
+      this.ulidRandomnessPart = "";
+
+      this.epochInMs = "";
+      this.dateLocalDefault = "";
+      this.dateLocalNumeric = "";
+      this.dateUtcISO = "";
+
+      this.base32Values = [];
+      this.decValues = [];
+      this.binValues = [];
+      this.binAll = "";
+      this.hexAll = "";
+    }
+
+    update(ulidTimestamp: string, ulidRandomness: string, epochMs: number) {
+      this.ulidTimestampPart = ulidTimestamp;
+      this.ulidRandomnessPart = ulidRandomness;
+      this._updateDateOutputs(epochMs);
+      this._updateEncodingOutputs(ulidTimestamp);
+    }
+
+    private _updateDateOutputs(epochMs: number) {
+      const dt = new Date(epochMs);
+      this.epochInMs = epochMs.toString();
+      this.dateLocalDefault = dt.toString();
+      this.dateLocalNumeric = defaultDateTimeFormat.format(dt);
+      this.dateUtcISO = dt.toISOString();
+    }
+
+    private _updateEncodingOutputs(ulidTimestamp: string) {
+      const base32Values = ulidTimestamp.split("");
+      const decValues = [];
+      const binValues = [];
+
+      // base32 -> decimal, binary
+      for (const [i, base32Char] of base32Values.entries()) {
+        const dec = CROCKFORD_BASE32_CHARS.indexOf(base32Char);
+        decValues.push(dec);
+
+        let bin = "";
+        for (let pos = 4; pos >= 0; pos--) {
+          bin += (dec & (1 << pos)) > 0 ? "1" : "0";
+        }
+        binValues.push(bin);
+      }
+      binValues[0] = binValues[0].slice(2);
+      const binAll = binValues.join("");
+
+      this.base32Values = base32Values;
+      this.decValues = decValues;
+      this.binValues = binValues;
+      this.binAll = binAll;
+
+      // binary -> hexadecimal
+      let hexAll = "";
+      let total = 0;
+      for (const [i, binChar] of binAll.split("").reverse().entries()) {
+        const pos = i % 4;
+        if (pos === 0) {
+          total = 0;
+        }
+        if (binChar == "1") {
+          total += 1 << pos;
+        }
+        if (pos === 3) {
+          hexAll = HEX_CHARS[total] + hexAll;
+        }
+      }
+
+      this.hexAll = hexAll;
+    }
+  }
+
+  const inputUlid = new UlidInputField();
+  const inputDateTime = new DateTimeInputField();
+  const outputs = new OutputFields();
+  let success = $state(false);
+
+  $effect(() => convertFromUlid(inputUlid.value));
+  $effect(() => convertFromDateTime(inputDateTime.value));
 
   const convertFromUlid = (v: string) => {
     if (!v) {
-      clearOutput();
+      outputs.clear();
       success = false;
       return;
     }
 
     try {
       v = v.toUpperCase(); // clone
-      if (v.length >= timestampLength && v.length < fullLength) {
-        v += "0".repeat(fullLength - v.length); // fill random part
+      if (v.length >= ULID_TIMESTAMP_LENGTH && v.length < ULID_FULL_LENGTH) {
+        v += "0".repeat(ULID_FULL_LENGTH - v.length); // fill randomness part
       }
 
-      timestampPart = v.slice(0, timestampLength);
-      randomPart = v.slice(timestampLength);
-      epochInMilliseconds = decodeTime(v).toString();
+      const epochMs = decodeTime(v);
+      const tsPart = v.slice(0, ULID_TIMESTAMP_LENGTH);
+      const rsPart = v.slice(ULID_TIMESTAMP_LENGTH);
+      outputs.update(tsPart, rsPart, epochMs);
 
-      updateOutput(timestampPart, epochInMilliseconds);
-
-      inputUlidErrorMessage = "";
+      inputUlid.errorMessage = "";
       success = true;
     } catch (e: unknown) {
-      clearOutput();
-      if (e instanceof Error) inputUlidErrorMessage = e.message;
+      outputs.clear();
+      if (e instanceof Error) inputUlid.errorMessage = e.message;
       success = false;
     }
   };
 
   const convertFromDateTime = (v: string) => {
     if (!v) {
-      clearOutput();
+      outputs.clear();
       success = false;
       return;
     }
 
     try {
-      epochInMilliseconds = new Date(v).getTime().toString();
-      timestampPart = encodeTime(Number(epochInMilliseconds), timestampLength);
-      randomPart = ulid().toString().slice(timestampLength);
+      const epochMs = new Date(v).getTime();
+      const tsPart = encodeTime(epochMs, ULID_TIMESTAMP_LENGTH);
+      const rsPart = ulid().toString().slice(ULID_TIMESTAMP_LENGTH);
+      outputs.update(tsPart, rsPart, epochMs);
 
-      updateOutput(timestampPart, epochInMilliseconds);
-
-      inputDateTimeErrorMessage = "";
+      inputDateTime.errorMessage = "";
       success = true;
     } catch (e: unknown) {
-      clearOutput();
-      if (e instanceof Error) inputUlidErrorMessage = e.message;
+      outputs.clear();
+      if (e instanceof Error) inputDateTime.errorMessage = e.message;
       success = false;
     }
   };
 
-  const generateUlid = () => (inputUlid = ulid().toString());
-  const clearUlid = () => (inputUlid = "");
-
-  const setDateTimeNow = () => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    inputDateTime = now.toISOString().slice(0, -1);
-  };
-  const clearDateTime = () => (inputDateTime = "");
-
   onMount(() => {
     currentTheme = preferredTheme();
-    generateUlid();
+    inputUlid.set_random_value();
   });
 </script>
 
 <main>
   <div class="theme-toggle">
-    <button class="button" on:click={toggleTheme} aria-label="Toggle theme">
+    <button class="button" onclick={toggleTheme} aria-label="Toggle theme">
       Light/Dark
     </button>
     <a
@@ -226,18 +256,22 @@
         type="text"
         size="40"
         placeholder="Enter ULID here"
-        bind:value={inputUlid}
+        bind:value={inputUlid.value}
       />
-      {#if inputUlidErrorMessage}
+      {#if inputUlid.errorMessage}
         <span class="error-message" aria-live="polite">
-          {inputUlidErrorMessage}
+          {inputUlid.errorMessage}
         </span>
       {/if}
 
-      <button class="button" on:click={clearUlid} disabled={!inputUlid}
-        >Clear</button
+      <button
+        class="button"
+        onclick={() => inputUlid.clear()}
+        disabled={!inputUlid}>Clear</button
       >
-      <button class="button" on:click={generateUlid}>Generate</button>
+      <button class="button" onclick={() => inputUlid.set_random_value()}
+        >Generate</button
+      >
     </div>
     <div>
       <label for="datetime-input">From Date</label>
@@ -245,18 +279,22 @@
         id="datetime-input"
         type="datetime-local"
         step="0.001"
-        bind:value={inputDateTime}
+        bind:value={inputDateTime.value}
       />
-      {#if inputDateTimeErrorMessage}
+      {#if inputDateTime.errorMessage}
         <span class="error-message" aria-live="polite">
-          {inputDateTimeErrorMessage}
+          {inputDateTime.errorMessage}
         </span>
       {/if}
 
-      <button class="button" on:click={clearDateTime} disabled={!inputDateTime}
-        >Clear</button
+      <button
+        class="button"
+        onclick={() => inputDateTime.clear()}
+        disabled={!inputDateTime}>Clear</button
       >
-      <button class="button" on:click={setDateTimeNow}>Now</button>
+      <button class="button" onclick={() => inputDateTime.set_current_date()}
+        >Now</button
+      >
     </div>
   </div>
 
@@ -265,20 +303,19 @@
     <dl class="margin-top-0">
       <dt>ULID</dt>
       <dd class="mono">
-        <span class="ulid-part-timestamp">{timestampPart}</span><span
-          class="ulid-part-random">{randomPart}</span
-        >
+        <span class="ulid-part-timestamp">{outputs.ulidTimestampPart}</span
+        ><span class="ulid-part-random">{outputs.ulidRandomnessPart}</span>
       </dd>
       <dt>ULID Timestamp</dt>
-      <dd class="mono ulid-part-timestamp">{timestampPart}</dd>
+      <dd class="mono ulid-part-timestamp">{outputs.ulidTimestampPart}</dd>
       <dt>Unix Timestamp <span class="smaller">(in milliseconds)</span></dt>
-      <dd class="mono">{epochInMilliseconds}</dd>
+      <dd class="mono">{outputs.epochInMs}</dd>
       <dt>Date <span class="smaller">(Local, default format)</span></dt>
-      <dd class="mono">{dateLocal}</dd>
+      <dd class="mono">{outputs.dateLocalDefault}</dd>
       <dt>Date <span class="smaller">(Local, numeric format)</span></dt>
-      <dd class="mono">{dateLocalNumeric}</dd>
+      <dd class="mono">{outputs.dateLocalNumeric}</dd>
       <dt>Date <span class="smaller">(UTC, ISO-8601)</span></dt>
-      <dd class="mono">{dateLocalISO}</dd>
+      <dd class="mono">{outputs.dateUtcISO}</dd>
     </dl>
 
     {#if success}
@@ -286,7 +323,7 @@
         <thead class="text-center">
           <tr>
             <th class="no-border"></th>
-            <th colspan={timestampLength}>Timestamp (48-bit)</th>
+            <th colspan={ULID_TIMESTAMP_LENGTH}>Timestamp (48-bit)</th>
           </tr>
         </thead>
         <tbody class="mono">
@@ -299,29 +336,31 @@
                 rel="noreferrer">?</a
               >
             </th>
-            {#each base32Values as base32Char}
+            {#each outputs.base32Values as base32Char}
               <td class="text-right ulid-part-timestamp">{base32Char}</td>
             {/each}
           </tr>
           <tr>
             <th>Decimal</th>
-            {#each decValues as dec}
+            {#each outputs.decValues as dec}
               <td class="text-right">{dec}</td>
             {/each}
           </tr>
           <tr>
             <th rowspan="2">Binary</th>
-            {#each binValues as bin}
+            {#each outputs.binValues as bin}
               <td class="text-right small">{bin}</td>
             {/each}
           </tr>
           <tr>
-            <td class="text-center small" colspan={timestampLength}>{binAll}</td
+            <td class="text-center small" colspan={ULID_TIMESTAMP_LENGTH}
+              >{outputs.binAll}</td
             >
           </tr>
           <tr>
             <th>Hexadecimal</th>
-            <td class="text-center small" colspan={timestampLength}>{hexAll}</td
+            <td class="text-center small" colspan={ULID_TIMESTAMP_LENGTH}
+              >{outputs.hexAll}</td
             >
           </tr>
         </tbody>
