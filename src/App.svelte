@@ -1,27 +1,21 @@
-<script>
+<script lang="ts">
   import { onMount } from "svelte";
-  import { ulid, encodeTime, decodeTime } from "ulid";
-  import { MetaTags } from "svelte-meta-tags";
-  import Icon from "mdi-svelte";
-  import { mdiGithub, mdiThemeLightDark } from "@mdi/js";
-  import { validate_store } from "svelte/internal";
+  import { ulid, encodeTime, decodeTime } from "ulidx";
 
   const siteTitle = "ULID Timestamp Converter";
-  const siteDescription = "Online timestamp converter for the ULID";
-  const siteCanonicalLink = "https://ugai.github.io/ulid-timestamp-converter/";
   const repositoryUrl = "https://github.com/ugai/ulid-timestamp-converter/";
 
   // dynamic theming {{{
   const darkTheme = "dark";
   const lightTheme = "light";
-  let currentTheme;
+  let currentTheme: string = lightTheme;
 
   const darkThemeAttr = "dark-theme";
   const preferredDark = "(prefers-color-scheme: dark)";
   const preferredTheme = () => {
     return window.matchMedia(preferredDark).matches ? darkTheme : lightTheme;
   };
-  const updateTheme = (theme) => {
+  const updateTheme = (theme: string) => {
     if (theme == darkTheme) {
       document.body.setAttribute(darkThemeAttr, theme);
     } else {
@@ -68,9 +62,9 @@
   let dateLocalISO = "";
   let dateLocalNumeric = "";
 
-  let base32Values = [];
-  let decValues = [];
-  let binValues = [];
+  let base32Values: string[] = [];
+  let decValues: number[] = [];
+  let binValues: string[] = [];
   let binAll = "";
   let hexAll = "";
 
@@ -89,10 +83,11 @@
     hexAll = "";
   };
 
-  const updateOutput = (timestampPart, epochInMilliseconds) => {
-    dateLocal = new Date(epochInMilliseconds);
-    dateLocalISO = dateLocal.toISOString();
-    dateLocalNumeric = defaultDateTimeFormat.format(dateLocal);
+  const updateOutput = (timestampPart: string, epochInMilliseconds: string) => {
+    const dt = new Date(Number(epochInMilliseconds));
+    dateLocal = dt.toString();
+    dateLocalISO = dt.toISOString();
+    dateLocalNumeric = defaultDateTimeFormat.format(dt);
 
     // my parser {{{
     base32Values = timestampPart.split("");
@@ -136,7 +131,7 @@
   $: convertFromUlid(inputUlid);
   $: convertFromDateTime(inputDateTime);
 
-  const convertFromUlid = (v) => {
+  const convertFromUlid = (v: string) => {
     if (!v) {
       clearOutput();
       success = false;
@@ -151,20 +146,20 @@
 
       timestampPart = v.slice(0, timestampLength);
       randomPart = v.slice(timestampLength);
-      epochInMilliseconds = decodeTime(v);
+      epochInMilliseconds = decodeTime(v).toString();
 
       updateOutput(timestampPart, epochInMilliseconds);
 
       inputUlidErrorMessage = "";
       success = true;
-    } catch (e) {
+    } catch (e: unknown) {
       clearOutput();
-      inputUlidErrorMessage = e.message;
+      if (e instanceof Error) inputUlidErrorMessage = e.message;
       success = false;
     }
   };
 
-  const convertFromDateTime = (v) => {
+  const convertFromDateTime = (v: string) => {
     if (!v) {
       clearOutput();
       success = false;
@@ -172,17 +167,17 @@
     }
 
     try {
-      epochInMilliseconds = new Date(v).getTime();
-      timestampPart = encodeTime(epochInMilliseconds, timestampLength);
+      epochInMilliseconds = new Date(v).getTime().toString();
+      timestampPart = encodeTime(Number(epochInMilliseconds), timestampLength);
       randomPart = ulid().toString().slice(timestampLength);
 
       updateOutput(timestampPart, epochInMilliseconds);
 
       inputDateTimeErrorMessage = "";
       success = true;
-    } catch (e) {
+    } catch (e: unknown) {
       clearOutput();
-      inputDateTimeErrorMessage = e.message;
+      if (e instanceof Error) inputUlidErrorMessage = e.message;
       success = false;
     }
   };
@@ -206,7 +201,7 @@
 <main>
   <div class="theme-toggle">
     <button class="button" on:click={toggleTheme} aria-label="Toggle theme">
-      <Icon path={mdiThemeLightDark} />
+      Light/Dark
     </button>
     <a
       class="button"
@@ -215,7 +210,7 @@
       href={repositoryUrl}
       aria-label="GitHub"
     >
-      <Icon path={mdiGithub} />
+      GitHub
     </a>
   </div>
 
@@ -290,7 +285,7 @@
       <table>
         <thead class="text-center">
           <tr>
-            <th class="no-border" />
+            <th class="no-border"></th>
             <th colspan={timestampLength}>Timestamp (48-bit)</th>
           </tr>
         </thead>
@@ -334,12 +329,6 @@
     {/if}
   </div>
 </main>
-
-<MetaTags
-  title={siteTitle}
-  description={siteDescription}
-  canonical={siteCanonicalLink}
-/>
 
 <style>
   .theme-toggle {

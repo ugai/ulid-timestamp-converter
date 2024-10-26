@@ -1,8 +1,8 @@
-# ULID timestamp converter
+# ULID Timestamp Converter
 
-Online timestamp converter for the [ULID](https://github.com/ulid/spec).
+[ULID](https://github.com/ulid/spec) <-> Timestamp Converter
 
-See website here: <https://ugai.github.io/ulid-timestamp-converter/>
+See the website: <https://ugai.github.io/ulid-timestamp-converter/>
 
 ## Screenshot
 

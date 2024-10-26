@@ -1,7 +1,7 @@
 var ghpages = require('gh-pages');
 
 ghpages.publish(
-    'public',
+    'dist',
     {
         branch: 'gh-pages',
         silent: true,
