@@ -6,28 +6,10 @@
   const repositoryUrl = "https://github.com/ugai/ulid-timestamp-converter/";
 
   // dynamic theming {{{
-  const darkTheme = "dark";
-  const lightTheme = "light";
-  let currentTheme: string = $state(lightTheme);
-
-  const darkThemeAttr = "dark-theme";
-  const preferredDark = "(prefers-color-scheme: dark)";
-  const preferredTheme = () => {
-    return window.matchMedia(preferredDark).matches ? darkTheme : lightTheme;
-  };
-  const updateTheme = (theme: string) => {
-    if (theme == darkTheme) {
-      document.body.setAttribute(darkThemeAttr, theme);
-    } else {
-      document.body.removeAttribute(darkThemeAttr);
-    }
-  };
-  const toggleTheme = () => {
-    currentTheme = currentTheme == darkTheme ? lightTheme : darkTheme;
-  };
+  let dark = $state(false);
 
   $effect(() => {
-    updateTheme(currentTheme);
+    document.body.toggleAttribute("dark-theme", dark);
   });
   // }}} dynamic theming
 
@@ -61,7 +43,7 @@
 
   class UlidInputField extends InputFieldBase {
     set_random_value() {
-      this.value = ulid().toString();
+      this.value = ulid();
     }
   }
 
@@ -129,11 +111,7 @@
         const dec = CROCKFORD_BASE32_CHARS.indexOf(base32Char);
         decValues.push(dec);
 
-        let bin = "";
-        for (let pos = 4; pos >= 0; pos--) {
-          bin += (dec & (1 << pos)) > 0 ? "1" : "0";
-        }
-        binValues.push(bin);
+        binValues.push(dec.toString(2).padStart(5, "0"));
       }
       binValues[0] = binValues[0].slice(2);
       const binAll = binValues.join("");
@@ -208,7 +186,7 @@
     try {
       const epochMs = new Date(v).getTime();
       const tsPart = encodeTime(epochMs, ULID_TIMESTAMP_LENGTH);
-      const rsPart = ulid().toString().slice(ULID_TIMESTAMP_LENGTH);
+      const rsPart = ulid().slice(ULID_TIMESTAMP_LENGTH);
       outputs.update(tsPart, rsPart, epochMs);
 
       inputDateTime.errorMessage = "";
@@ -221,14 +199,14 @@
   };
 
   onMount(() => {
-    currentTheme = preferredTheme();
+    dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     inputUlid.set_random_value();
   });
 </script>
 
 <main>
   <div class="theme-toggle">
-    <button class="button" onclick={toggleTheme} aria-label="Toggle theme">
+    <button class="button" onclick={() => dark = !dark} aria-label="Toggle theme">
       Light/Dark
     </button>
     <a
