@@ -8,12 +8,14 @@ ULID Timestamp Converter — a single-page web app that converts between ULID an
 
 ## Commands
 
+Requires Deno 2.x. Tasks are defined in `package.json` and run via `deno task`.
+
+- `deno install` — Install npm dependencies into `node_modules`
 - `deno task dev` — Start Vite dev server
 - `deno task build` — Production build (output: `dist/`)
 - `deno task check` — Type-check Svelte and Node TypeScript configs
 - `deno task preview` — Preview production build locally
 - `deno task publish-gh-pages` — Build and deploy to GitHub Pages
-- `deno install` — Install dependencies
 
 No test framework is configured.
 
