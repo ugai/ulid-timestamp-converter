@@ -1,6 +1,11 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { ulid, encodeTime, decodeTime } from "ulidx";
+  import { ulid, encodeTime } from "ulidx";
+  import {
+    ULID_TIMESTAMP_LENGTH,
+    decodeUlid,
+    parseUlidTimestamp,
+  } from "./lib/ulid";
 
   const siteTitle = "ULID Timestamp Converter";
   const repositoryUrl = "https://github.com/ugai/ulid-timestamp-converter/";
@@ -12,11 +17,6 @@
     document.body.toggleAttribute("dark-theme", dark);
   });
   // }}} dynamic theming
-
-  const ULID_FULL_LENGTH = 26;
-  const ULID_TIMESTAMP_LENGTH = 10;
-  const CROCKFORD_BASE32_CHARS = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-  const HEX_CHARS = "0123456789ABCDEF";
 
   // https://tc39.es/ecma402/#table-datetimeformat-components
   const defaultDateTimeFormat = new Intl.DateTimeFormat([], {
@@ -102,42 +102,12 @@
     }
 
     private _updateEncodingOutputs(ulidTimestamp: string) {
-      const base32Values = ulidTimestamp.split("");
-      const decValues = [];
-      const binValues = [];
-
-      // base32 -> decimal, binary
-      for (const [i, base32Char] of base32Values.entries()) {
-        const dec = CROCKFORD_BASE32_CHARS.indexOf(base32Char);
-        decValues.push(dec);
-
-        binValues.push(dec.toString(2).padStart(5, "0"));
-      }
-      binValues[0] = binValues[0].slice(2);
-      const binAll = binValues.join("");
-
-      this.base32Values = base32Values;
-      this.decValues = decValues;
-      this.binValues = binValues;
-      this.binAll = binAll;
-
-      // binary -> hexadecimal
-      let hexAll = "";
-      let total = 0;
-      for (const [i, binChar] of binAll.split("").reverse().entries()) {
-        const pos = i % 4;
-        if (pos === 0) {
-          total = 0;
-        }
-        if (binChar == "1") {
-          total += 1 << pos;
-        }
-        if (pos === 3) {
-          hexAll = HEX_CHARS[total] + hexAll;
-        }
-      }
-
-      this.hexAll = hexAll;
+      const result = parseUlidTimestamp(ulidTimestamp);
+      this.base32Values = result.base32Values;
+      this.decValues = result.decValues;
+      this.binValues = result.binValues;
+      this.binAll = result.binAll;
+      this.hexAll = result.hexAll;
     }
   }
 
@@ -157,15 +127,8 @@
     }
 
     try {
-      v = v.toUpperCase(); // clone
-      if (v.length >= ULID_TIMESTAMP_LENGTH && v.length < ULID_FULL_LENGTH) {
-        v += "0".repeat(ULID_FULL_LENGTH - v.length); // fill randomness part
-      }
-
-      const epochMs = decodeTime(v);
-      const tsPart = v.slice(0, ULID_TIMESTAMP_LENGTH);
-      const rsPart = v.slice(ULID_TIMESTAMP_LENGTH);
-      outputs.update(tsPart, rsPart, epochMs);
+      const { epochMs, timestampPart, randomnessPart } = decodeUlid(v);
+      outputs.update(timestampPart, randomnessPart, epochMs);
 
       inputUlid.errorMessage = "";
       success = true;

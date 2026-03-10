@@ -17,12 +17,13 @@ Requires Deno 2.x. Tasks are defined in `package.json` and run via `deno task`.
 - `deno task preview` — Preview production build locally
 - `deno task publish-gh-pages` — Build and deploy to GitHub Pages
 
-No test framework is configured.
+- `deno task test` or `npm test` — Run Vitest unit tests
 
 ## Architecture
 
 - **Svelte 5 + TypeScript + Vite** single-page app
-- All application logic lives in `src/App.svelte` (single component, no routing)
+- Pure ULID parsing/decoding logic lives in `src/lib/ulid.ts`
+- UI component in `src/App.svelte` (single component, no routing)
 - Uses `ulidx` library for ULID encode/decode operations
 - Svelte 5 runes (`$state`, `$effect`) for reactivity
 - Two input modes: ULID string → timestamp, or datetime → ULID timestamp part

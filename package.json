@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
+    "test": "vitest run",
     "publish-gh-pages": "deno task build && gh-pages -d dist"
   },
   "devDependencies": {
@@ -19,6 +20,7 @@
     "tslib": "^2.8.0",
     "typescript": "~5.6.2",
     "ulidx": "^2.4.1",
-    "vite": "^5.4.21"
+    "vite": "^5.4.21",
+    "vitest": "^4.0.18"
   }
 }
