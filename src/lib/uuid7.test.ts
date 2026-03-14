@@ -162,7 +162,7 @@ describe("parseUuid7Timestamp", () => {
     expect(result.hexAll).toBe("FFFFFFFFFFFF");
   });
 
-  it("lowercases input and normalizes to uppercase", () => {
+  it("accepts lowercase input and normalizes to uppercase", () => {
     const result = parseUuid7Timestamp("abcdef012345");
     expect(result.hexAll).toBe("ABCDEF012345");
     expect(result.hexNibbles).toEqual(["A", "B", "C", "D", "E", "F", "0", "1", "2", "3", "4", "5"]);
