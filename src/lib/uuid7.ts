@@ -21,13 +21,13 @@ export interface Uuid7EncodingBreakdown {
 
 /**
  * Remove dashes and uppercase a UUID input string.
- * Throws if the result is not 32 hex characters.
+ * Throws if the result is not exactly 32 hexadecimal characters.
  */
 export function normalizeUuid7Input(input: string): string {
   const v = input.replace(/-/g, "").toUpperCase();
-  if (v.length !== 32) {
+  if (!/^[0-9A-F]{32}$/.test(v)) {
     throw new Error(
-      `Invalid UUID length: expected 32 hex characters (with or without dashes), got ${v.length}`
+      `Invalid UUID: expected 32 hex characters (with or without dashes), got "${input}"`
     );
   }
   return v;
@@ -59,11 +59,19 @@ export function decodeUuid7(input: string): Uuid7DecodedResult {
   return { epochMs, timestampHex, versionNibble, randA, variantNibble, randB, formatted };
 }
 
+const UUID7_MAX_EPOCH_MS = 0xffffffffffff; // 2^48 - 1
+
 /**
  * Generate a UUID v7 string from an epoch-millisecond timestamp.
  * Uses crypto.getRandomValues for the random portion.
+ * Throws if epochMs is not a finite integer within the 48-bit range (0..2^48-1).
  */
 export function generateUuid7(epochMs: number): string {
+  if (!Number.isFinite(epochMs) || !Number.isInteger(epochMs) || epochMs < 0 || epochMs > UUID7_MAX_EPOCH_MS) {
+    throw new Error(
+      `epochMs must be a finite integer in range 0..${UUID7_MAX_EPOCH_MS}, got ${epochMs}`
+    );
+  }
   const tsHex = epochMs.toString(16).padStart(12, "0");
 
   const randBytes = new Uint8Array(10);

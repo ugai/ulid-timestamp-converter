@@ -107,6 +107,33 @@ describe("generateUuid7", () => {
     const decoded = decodeUuid7(uuid7);
     expect(decoded.epochMs).toBe(0);
   });
+
+  it("works for max valid epochMs (2^48 - 1)", () => {
+    const maxEpochMs = 0xffffffffffff;
+    const uuid7 = generateUuid7(maxEpochMs);
+    const decoded = decodeUuid7(uuid7);
+    expect(decoded.epochMs).toBe(maxEpochMs);
+  });
+
+  it("throws for negative epochMs", () => {
+    expect(() => generateUuid7(-1)).toThrow();
+  });
+
+  it("throws for epochMs exceeding 48-bit max", () => {
+    expect(() => generateUuid7(0x1000000000000)).toThrow();
+  });
+
+  it("throws for NaN", () => {
+    expect(() => generateUuid7(NaN)).toThrow();
+  });
+
+  it("throws for Infinity", () => {
+    expect(() => generateUuid7(Infinity)).toThrow();
+  });
+
+  it("throws for non-integer epochMs", () => {
+    expect(() => generateUuid7(1.5)).toThrow();
+  });
 });
 
 describe("parseUuid7Timestamp", () => {

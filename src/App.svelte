@@ -200,9 +200,11 @@
   let success = $state(false);
   let successUuid7 = $state(false);
 
-  // Clear shared inputs and outputs on mode switch (must run before conversion effects)
+  // Clear all inputs and outputs on mode switch (must run before conversion effects)
   $effect(() => {
     const _ = mode;
+    inputUlid.clear();
+    inputUuid7.clear();
     inputDateTime.clear();
     outputs.clear();
     outputsUuid7.clear();
@@ -521,6 +523,8 @@
         <dd class="mono uuid7-part-timestamp">{outputsUuid7.timestampHex}</dd>
         <dt>rand_a</dt>
         <dd class="mono">{outputsUuid7.randA}</dd>
+        <dt>variant</dt>
+        <dd class="mono">{outputsUuid7.variantNibble}</dd>
         <dt>rand_b</dt>
         <dd class="mono">{outputsUuid7.randB}</dd>
         <dt>Unix Timestamp <span class="smaller">(in milliseconds)</span></dt>
