@@ -210,122 +210,105 @@
     }
   });
 
+  /** Update ULID output from epochMs. Returns error message on failure. */
+  const updateUlidFromEpoch = (epochMs: number): string | null => {
+    try {
+      const tsPart = encodeTime(epochMs, ULID_TIMESTAMP_LENGTH);
+      const rsPart = ulid().slice(ULID_TIMESTAMP_LENGTH);
+      outputs.update(tsPart, rsPart, epochMs);
+      success = true;
+      return null;
+    } catch (e: unknown) {
+      outputs.clear();
+      success = false;
+      return e instanceof Error ? e.message : "ULID conversion failed";
+    }
+  };
+
+  /** Update UUID v7 output from epochMs. Returns error message on failure. */
+  const updateUuid7FromEpoch = (epochMs: number): string | null => {
+    try {
+      const uuid7 = generateUuid7(epochMs);
+      outputsUuid7.update(decodeUuid7(uuid7));
+      successUuid7 = true;
+      return null;
+    } catch (e: unknown) {
+      outputsUuid7.clear();
+      successUuid7 = false;
+      return e instanceof Error ? e.message : "UUID v7 conversion failed";
+    }
+  };
+
+  const clearAll = () => {
+    outputs.clear();
+    outputsUuid7.clear();
+    success = false;
+    successUuid7 = false;
+  };
+
   const convertUlidInput = (v: string) => {
     if (!v) {
       inputUlid.errorMessage = "";
-      outputs.clear();
-      outputsUuid7.clear();
-      success = false;
-      successUuid7 = false;
+      clearAll();
       return;
     }
 
-    // ULID output
     try {
       const { epochMs, timestampPart, randomnessPart } = decodeUlid(v);
       outputs.update(timestampPart, randomnessPart, epochMs);
       inputUlid.errorMessage = "";
       success = true;
 
-      // UUID v7 output (cross-convert via epochMs)
-      try {
-        const uuid7 = generateUuid7(epochMs);
-        outputsUuid7.update(decodeUuid7(uuid7));
-        successUuid7 = true;
-      } catch {
-        outputsUuid7.clear();
-        successUuid7 = false;
-      }
+      const err = updateUuid7FromEpoch(epochMs);
+      if (err) inputUlid.errorMessage = err;
     } catch (e: unknown) {
-      outputs.clear();
-      outputsUuid7.clear();
+      clearAll();
       if (e instanceof Error) inputUlid.errorMessage = e.message;
-      success = false;
-      successUuid7 = false;
     }
   };
 
   const convertUuid7Input = (v: string) => {
     if (!v) {
       inputUuid7.errorMessage = "";
-      outputs.clear();
-      outputsUuid7.clear();
-      success = false;
-      successUuid7 = false;
+      clearAll();
       return;
     }
 
-    // UUID v7 output
     try {
       const decoded = decodeUuid7(v);
       outputsUuid7.update(decoded);
       inputUuid7.errorMessage = "";
       successUuid7 = true;
 
-      // ULID output (cross-convert via epochMs)
-      try {
-        const epochMs = decoded.epochMs;
-        const tsPart = encodeTime(epochMs, ULID_TIMESTAMP_LENGTH);
-        const rsPart = ulid().slice(ULID_TIMESTAMP_LENGTH);
-        outputs.update(tsPart, rsPart, epochMs);
-        success = true;
-      } catch {
-        outputs.clear();
-        success = false;
-      }
+      const err = updateUlidFromEpoch(decoded.epochMs);
+      if (err) inputUuid7.errorMessage = err;
     } catch (e: unknown) {
-      outputs.clear();
-      outputsUuid7.clear();
+      clearAll();
       if (e instanceof Error) inputUuid7.errorMessage = e.message;
-      success = false;
-      successUuid7 = false;
     }
   };
 
   const convertDateTimeInput = (v: string) => {
     if (!v) {
       inputDateTime.errorMessage = "";
-      outputs.clear();
-      outputsUuid7.clear();
-      success = false;
-      successUuid7 = false;
+      clearAll();
       return;
     }
 
-    try {
-      const epochMs = new Date(v).getTime();
-      if (!Number.isFinite(epochMs)) {
-        throw new Error("Invalid date");
-      }
-      inputDateTime.errorMessage = "";
-
-      // ULID output
-      try {
-        const tsPart = encodeTime(epochMs, ULID_TIMESTAMP_LENGTH);
-        const rsPart = ulid().slice(ULID_TIMESTAMP_LENGTH);
-        outputs.update(tsPart, rsPart, epochMs);
-        success = true;
-      } catch {
-        outputs.clear();
-        success = false;
-      }
-
-      // UUID v7 output
-      try {
-        const uuid7 = generateUuid7(epochMs);
-        outputsUuid7.update(decodeUuid7(uuid7));
-        successUuid7 = true;
-      } catch {
-        outputsUuid7.clear();
-        successUuid7 = false;
-      }
-    } catch (e: unknown) {
-      outputs.clear();
-      outputsUuid7.clear();
-      if (e instanceof Error) inputDateTime.errorMessage = e.message;
-      success = false;
-      successUuid7 = false;
+    const epochMs = new Date(v).getTime();
+    if (!Number.isFinite(epochMs)) {
+      inputDateTime.errorMessage = "Invalid date";
+      clearAll();
+      return;
     }
+    inputDateTime.errorMessage = "";
+
+    const errors: string[] = [];
+    const ulidErr = updateUlidFromEpoch(epochMs);
+    if (ulidErr) errors.push(ulidErr);
+    const uuid7Err = updateUuid7FromEpoch(epochMs);
+    if (uuid7Err) errors.push(uuid7Err);
+    if (errors.length) inputDateTime.errorMessage = errors.join("; ");
   };
 
   onMount(() => {
