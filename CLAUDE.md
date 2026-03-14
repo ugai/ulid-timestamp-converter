@@ -17,7 +17,7 @@ Requires Deno 2.x. Tasks are defined in `package.json` and run via `deno task`.
 - `deno task preview` — Preview production build locally
 - `deno task publish-gh-pages` — Build and deploy to GitHub Pages
 
-- `deno task test` or `npm test` — Run Vitest unit tests
+- `npm test` — Run Vitest unit tests (use npm rather than Deno to avoid version mismatches)
 
 ## Architecture
 
