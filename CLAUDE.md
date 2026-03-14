@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ULID Timestamp Converter — a single-page web app that converts between ULID and timestamps. Hosted on GitHub Pages at https://ugai.github.io/ulid-timestamp-converter/.
+ULID / UUID v7 Timestamp Converter — a single-page web app that converts between ULID, UUID v7, and timestamps. Hosted on GitHub Pages at https://ugai.github.io/ulid-timestamp-converter/.
 
 ## Commands
 
