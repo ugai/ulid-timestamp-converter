@@ -212,6 +212,7 @@
 
   const convertUlidInput = (v: string) => {
     if (!v) {
+      inputUlid.errorMessage = "";
       outputs.clear();
       outputsUuid7.clear();
       success = false;
@@ -246,6 +247,7 @@
 
   const convertUuid7Input = (v: string) => {
     if (!v) {
+      inputUuid7.errorMessage = "";
       outputs.clear();
       outputsUuid7.clear();
       success = false;
@@ -282,6 +284,7 @@
 
   const convertDateTimeInput = (v: string) => {
     if (!v) {
+      inputDateTime.errorMessage = "";
       outputs.clear();
       outputsUuid7.clear();
       success = false;
@@ -291,6 +294,9 @@
 
     try {
       const epochMs = new Date(v).getTime();
+      if (!Number.isFinite(epochMs)) {
+        throw new Error("Invalid date");
+      }
       inputDateTime.errorMessage = "";
 
       // ULID output
@@ -427,7 +433,7 @@
   </div>
 
   <details open>
-    <summary><h2 class="inline">ULID Output</h2></summary>
+    <summary><span class="summary-heading">ULID Output</span></summary>
     <div class="group">
       <dl class="margin-top-0">
         <dt>ULID</dt>
@@ -499,7 +505,7 @@
   </details>
 
   <details open>
-    <summary><h2 class="inline">UUID v7 Output</h2></summary>
+    <summary><span class="summary-heading">UUID v7 Output</span></summary>
     <div class="group">
       <dl class="margin-top-0">
         <dt>UUID v7</dt>
@@ -570,8 +576,9 @@
     margin: 0 8px;
   }
 
-  h2.inline {
-    display: inline;
+  .summary-heading {
+    font-size: 1.5em;
+    font-weight: bold;
   }
 
   summary {

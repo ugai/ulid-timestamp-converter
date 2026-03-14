@@ -26,7 +26,7 @@ Requires Deno 2.x. Tasks are defined in `package.json` and run via `deno task`.
 - UI component in `src/App.svelte` (single component, no routing)
 - Uses `ulidx` library for ULID encode/decode operations
 - Svelte 5 runes (`$state`, `$effect`) for reactivity
-- Two input modes: ULID string → timestamp, or datetime → ULID timestamp part
-- Output shows decoded timestamp in multiple formats plus Crockford Base32/decimal/binary/hex breakdown
+- Three parallel inputs: ULID string, UUID v7 string, or datetime — last-changed input drives conversion
+- Two collapsible output sections (ULID Output / UUID v7 Output) showing decoded timestamp in multiple formats plus encoding breakdown
 - Global styles in `public/global.css`; component styles scoped in `App.svelte`
 - Dark/light theme toggle via `body[dark-theme]` attribute
