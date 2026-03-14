@@ -74,7 +74,7 @@ a:any-link.button {
 }
 
 .uuid7-part-timestamp {
-  color: darkorange;
+  color: #b85c00; /* darker orange for WCAG AA contrast on light background */
 }
 
 /* dark theme */

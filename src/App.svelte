@@ -200,7 +200,7 @@
   let success = $state(false);
   let successUuid7 = $state(false);
 
-  // Clear all inputs and outputs on mode switch (must run before conversion effects)
+  // Clear all inputs, outputs, and success flags on mode switch (must run before conversion effects)
   $effect(() => {
     const _ = mode;
     inputUlid.clear();
@@ -208,6 +208,8 @@
     inputDateTime.clear();
     outputs.clear();
     outputsUuid7.clear();
+    success = false;
+    successUuid7 = false;
   });
 
   $effect(() => {
@@ -331,9 +333,9 @@
 
   <h1 class="title">{siteTitle}</h1>
 
-  <div class="mode-toggle">
-    <button class="button" class:active={mode === "ulid"} onclick={() => mode = "ulid"}>ULID</button>
-    <button class="button" class:active={mode === "uuid7"} onclick={() => mode = "uuid7"}>UUID v7</button>
+  <div class="mode-toggle" role="group" aria-label="Conversion mode">
+    <button class="button" class:active={mode === "ulid"} aria-pressed={mode === "ulid"} onclick={() => mode = "ulid"}>ULID</button>
+    <button class="button" class:active={mode === "uuid7"} aria-pressed={mode === "uuid7"} onclick={() => mode = "uuid7"}>UUID v7</button>
   </div>
 
   {#if mode === "ulid"}
