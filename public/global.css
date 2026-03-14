@@ -73,6 +73,10 @@ a:any-link.button {
   color: var(--gray100);
 }
 
+.uuid7-part-timestamp {
+  color: darkorange;
+}
+
 /* dark theme */
 
 body[dark-theme] {
@@ -112,6 +116,10 @@ body[dark-theme] .ulid-part-timestamp {
 
 body[dark-theme] .ulid-part-random {
   color: var(--gray10);
+}
+
+body[dark-theme] .uuid7-part-timestamp {
+  color: orange;
 }
 
 /* utils */
