@@ -14,7 +14,7 @@
   } from "./lib/uuid7";
   import type { Uuid7DecodedResult } from "./lib/uuid7";
 
-  const siteTitle = "ULID Timestamp Converter";
+  const siteTitle = "ULID / UUID v7 Timestamp Converter";
   const repositoryUrl = "https://github.com/ugai/ulid-timestamp-converter/";
 
   // dynamic theming {{{
@@ -38,8 +38,7 @@
     hour12: false,
   });
 
-  type AppMode = "ulid" | "uuid7";
-  let mode: AppMode = $state("ulid");
+  let lastInput: "ulid" | "uuid7" | "datetime" = $state("ulid");
 
   abstract class InputFieldBase {
     value: string = $state("");
@@ -200,113 +199,116 @@
   let success = $state(false);
   let successUuid7 = $state(false);
 
-  // Clear all inputs, outputs, and success flags on mode switch (must run before conversion effects)
+  // Cross-conversion: derive both outputs from whichever input was last changed
   $effect(() => {
-    const _ = mode;
-    inputUlid.clear();
-    inputUuid7.clear();
-    inputDateTime.clear();
+    if (lastInput === "ulid") {
+      convertUlidInput(inputUlid.value);
+    } else if (lastInput === "uuid7") {
+      convertUuid7Input(inputUuid7.value);
+    } else {
+      convertDateTimeInput(inputDateTime.value);
+    }
+  });
+
+  /** Update ULID output from epochMs. Returns error message on failure. */
+  const updateUlidFromEpoch = (epochMs: number): string | null => {
+    try {
+      const tsPart = encodeTime(epochMs, ULID_TIMESTAMP_LENGTH);
+      const rsPart = ulid().slice(ULID_TIMESTAMP_LENGTH);
+      outputs.update(tsPart, rsPart, epochMs);
+      success = true;
+      return null;
+    } catch (e: unknown) {
+      outputs.clear();
+      success = false;
+      return e instanceof Error ? e.message : "ULID conversion failed";
+    }
+  };
+
+  /** Update UUID v7 output from epochMs. Returns error message on failure. */
+  const updateUuid7FromEpoch = (epochMs: number): string | null => {
+    try {
+      const uuid7 = generateUuid7(epochMs);
+      outputsUuid7.update(decodeUuid7(uuid7));
+      successUuid7 = true;
+      return null;
+    } catch (e: unknown) {
+      outputsUuid7.clear();
+      successUuid7 = false;
+      return e instanceof Error ? e.message : "UUID v7 conversion failed";
+    }
+  };
+
+  const clearAll = () => {
     outputs.clear();
     outputsUuid7.clear();
     success = false;
     successUuid7 = false;
-  });
+  };
 
-  $effect(() => {
-    if (mode === "ulid") convertFromUlid(inputUlid.value);
-  });
-  $effect(() => {
-    if (mode === "ulid") convertFromDateTime(inputDateTime.value);
-  });
-  $effect(() => {
-    if (mode === "uuid7") convertFromUuid7(inputUuid7.value);
-  });
-  $effect(() => {
-    if (mode === "uuid7") convertFromDateTimeForUuid7(inputDateTime.value);
-  });
-
-  const convertFromUlid = (v: string) => {
+  const convertUlidInput = (v: string) => {
     if (!v) {
-      outputs.clear();
-      success = false;
+      inputUlid.errorMessage = "";
+      clearAll();
       return;
     }
 
     try {
       const { epochMs, timestampPart, randomnessPart } = decodeUlid(v);
       outputs.update(timestampPart, randomnessPart, epochMs);
-
       inputUlid.errorMessage = "";
       success = true;
+
+      const err = updateUuid7FromEpoch(epochMs);
+      if (err) inputUlid.errorMessage = err;
     } catch (e: unknown) {
-      outputs.clear();
+      clearAll();
       if (e instanceof Error) inputUlid.errorMessage = e.message;
-      success = false;
     }
   };
 
-  const convertFromDateTime = (v: string) => {
+  const convertUuid7Input = (v: string) => {
     if (!v) {
-      outputs.clear();
-      success = false;
-      return;
-    }
-
-    try {
-      const epochMs = new Date(v).getTime();
-      const tsPart = encodeTime(epochMs, ULID_TIMESTAMP_LENGTH);
-      const rsPart = ulid().slice(ULID_TIMESTAMP_LENGTH);
-      outputs.update(tsPart, rsPart, epochMs);
-
-      inputDateTime.errorMessage = "";
-      success = true;
-    } catch (e: unknown) {
-      outputs.clear();
-      if (e instanceof Error) inputDateTime.errorMessage = e.message;
-      success = false;
-    }
-  };
-
-  const convertFromUuid7 = (v: string) => {
-    if (!v) {
-      outputsUuid7.clear();
-      successUuid7 = false;
+      inputUuid7.errorMessage = "";
+      clearAll();
       return;
     }
 
     try {
       const decoded = decodeUuid7(v);
       outputsUuid7.update(decoded);
-
       inputUuid7.errorMessage = "";
       successUuid7 = true;
+
+      const err = updateUlidFromEpoch(decoded.epochMs);
+      if (err) inputUuid7.errorMessage = err;
     } catch (e: unknown) {
-      outputsUuid7.clear();
+      clearAll();
       if (e instanceof Error) inputUuid7.errorMessage = e.message;
-      successUuid7 = false;
     }
   };
 
-  const convertFromDateTimeForUuid7 = (v: string) => {
+  const convertDateTimeInput = (v: string) => {
     if (!v) {
-      outputsUuid7.clear();
-      successUuid7 = false;
+      inputDateTime.errorMessage = "";
+      clearAll();
       return;
     }
 
-    try {
-      const epochMs = new Date(v).getTime();
-      const uuid7 = generateUuid7(epochMs);
-      const decoded = decodeUuid7(uuid7);
-      outputsUuid7.update(decoded);
-
-      inputDateTime.errorMessage = "";
-      successUuid7 = true;
-    } catch (e: unknown) {
-      outputsUuid7.clear();
-      if (e instanceof Error) inputDateTime.errorMessage = e.message;
-      successUuid7 = false;
+    const epochMs = new Date(v).getTime();
+    if (!Number.isFinite(epochMs)) {
+      inputDateTime.errorMessage = "Invalid date";
+      clearAll();
+      return;
     }
+    inputDateTime.errorMessage = "";
+
+    const errors: string[] = [];
+    const ulidErr = updateUlidFromEpoch(epochMs);
+    if (ulidErr) errors.push(ulidErr);
+    const uuid7Err = updateUuid7FromEpoch(epochMs);
+    if (uuid7Err) errors.push(uuid7Err);
+    if (errors.length) inputDateTime.errorMessage = errors.join("; ");
   };
 
   onMount(() => {
@@ -333,65 +335,88 @@
 
   <h1 class="title">{siteTitle}</h1>
 
-  <div class="mode-toggle" role="group" aria-label="Conversion mode">
-    <button class="button" class:active={mode === "ulid"} aria-pressed={mode === "ulid"} onclick={() => mode = "ulid"}>ULID</button>
-    <button class="button" class:active={mode === "uuid7"} aria-pressed={mode === "uuid7"} onclick={() => mode = "uuid7"}>UUID v7</button>
+  <h2>Input</h2>
+  <div class="group">
+    <div>
+      <label for="ulid-input">ULID</label>
+      <input
+        id="ulid-input"
+        class="mono"
+        type="text"
+        size="40"
+        placeholder="Enter ULID here"
+        bind:value={inputUlid.value}
+        oninput={() => lastInput = "ulid"}
+      />
+      {#if inputUlid.errorMessage}
+        <span class="error-message" aria-live="polite">
+          {inputUlid.errorMessage}
+        </span>
+      {/if}
+
+      <button
+        class="button"
+        onclick={() => { inputUlid.clear(); lastInput = "ulid"; }}
+        disabled={!inputUlid.value}>Clear</button
+      >
+      <button class="button" onclick={() => { inputUlid.set_random_value(); lastInput = "ulid"; }}
+        >Generate</button
+      >
+    </div>
+    <div>
+      <label for="uuid7-input">UUID v7</label>
+      <input
+        id="uuid7-input"
+        class="mono"
+        type="text"
+        size="40"
+        placeholder="Enter UUID v7 here"
+        bind:value={inputUuid7.value}
+        oninput={() => lastInput = "uuid7"}
+      />
+      {#if inputUuid7.errorMessage}
+        <span class="error-message" aria-live="polite">
+          {inputUuid7.errorMessage}
+        </span>
+      {/if}
+
+      <button
+        class="button"
+        onclick={() => { inputUuid7.clear(); lastInput = "uuid7"; }}
+        disabled={!inputUuid7.value}>Clear</button
+      >
+      <button class="button" onclick={() => { inputUuid7.set_random_value(); lastInput = "uuid7"; }}
+        >Generate</button
+      >
+    </div>
+    <div>
+      <label for="datetime-input">Date</label>
+      <input
+        id="datetime-input"
+        type="datetime-local"
+        step="0.001"
+        bind:value={inputDateTime.value}
+        oninput={() => lastInput = "datetime"}
+      />
+      {#if inputDateTime.errorMessage}
+        <span class="error-message" aria-live="polite">
+          {inputDateTime.errorMessage}
+        </span>
+      {/if}
+
+      <button
+        class="button"
+        onclick={() => { inputDateTime.clear(); lastInput = "datetime"; }}
+        disabled={!inputDateTime.value}>Clear</button
+      >
+      <button class="button" onclick={() => { inputDateTime.set_current_date(); lastInput = "datetime"; }}
+        >Now</button
+      >
+    </div>
   </div>
 
-  {#if mode === "ulid"}
-    <h2>Input</h2>
-    <div class="group">
-      <div>
-        <label for="ulid-input">From ULID</label>
-        <input
-          id="ulid-input"
-          class="mono"
-          type="text"
-          size="40"
-          placeholder="Enter ULID here"
-          bind:value={inputUlid.value}
-        />
-        {#if inputUlid.errorMessage}
-          <span class="error-message" aria-live="polite">
-            {inputUlid.errorMessage}
-          </span>
-        {/if}
-
-        <button
-          class="button"
-          onclick={() => inputUlid.clear()}
-          disabled={!inputUlid.value}>Clear</button
-        >
-        <button class="button" onclick={() => inputUlid.set_random_value()}
-          >Generate</button
-        >
-      </div>
-      <div>
-        <label for="datetime-input">From Date</label>
-        <input
-          id="datetime-input"
-          type="datetime-local"
-          step="0.001"
-          bind:value={inputDateTime.value}
-        />
-        {#if inputDateTime.errorMessage}
-          <span class="error-message" aria-live="polite">
-            {inputDateTime.errorMessage}
-          </span>
-        {/if}
-
-        <button
-          class="button"
-          onclick={() => inputDateTime.clear()}
-          disabled={!inputDateTime.value}>Clear</button
-        >
-        <button class="button" onclick={() => inputDateTime.set_current_date()}
-          >Now</button
-        >
-      </div>
-    </div>
-
-    <h2>Output</h2>
+  <details open>
+    <summary><span class="summary-heading">ULID Output</span></summary>
     <div class="group">
       <dl class="margin-top-0">
         <dt>ULID</dt>
@@ -460,60 +485,10 @@
         </table>
       {/if}
     </div>
-  {:else}
-    <h2>Input</h2>
-    <div class="group">
-      <div>
-        <label for="uuid7-input">From UUID v7</label>
-        <input
-          id="uuid7-input"
-          class="mono"
-          type="text"
-          size="40"
-          placeholder="Enter UUID v7 here"
-          bind:value={inputUuid7.value}
-        />
-        {#if inputUuid7.errorMessage}
-          <span class="error-message" aria-live="polite">
-            {inputUuid7.errorMessage}
-          </span>
-        {/if}
+  </details>
 
-        <button
-          class="button"
-          onclick={() => inputUuid7.clear()}
-          disabled={!inputUuid7.value}>Clear</button
-        >
-        <button class="button" onclick={() => inputUuid7.set_random_value()}
-          >Generate</button
-        >
-      </div>
-      <div>
-        <label for="datetime-input-uuid7">From Date</label>
-        <input
-          id="datetime-input-uuid7"
-          type="datetime-local"
-          step="0.001"
-          bind:value={inputDateTime.value}
-        />
-        {#if inputDateTime.errorMessage}
-          <span class="error-message" aria-live="polite">
-            {inputDateTime.errorMessage}
-          </span>
-        {/if}
-
-        <button
-          class="button"
-          onclick={() => inputDateTime.clear()}
-          disabled={!inputDateTime.value}>Clear</button
-        >
-        <button class="button" onclick={() => inputDateTime.set_current_date()}
-          >Now</button
-        >
-      </div>
-    </div>
-
-    <h2>Output</h2>
+  <details open>
+    <summary><span class="summary-heading">UUID v7 Output</span></summary>
     <div class="group">
       <dl class="margin-top-0">
         <dt>UUID v7</dt>
@@ -575,7 +550,7 @@
         </table>
       {/if}
     </div>
-  {/if}
+  </details>
 </main>
 
 <style>
@@ -584,12 +559,14 @@
     margin: 0 8px;
   }
 
-  .mode-toggle {
-    margin-bottom: 8px;
+  .summary-heading {
+    font-size: 1.5em;
+    font-weight: bold;
   }
 
-  .button.active {
-    outline: 2px solid currentColor;
+  summary {
+    cursor: pointer;
+    margin-bottom: 4px;
   }
 
   table {
