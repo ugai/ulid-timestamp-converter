@@ -210,11 +210,27 @@
     }
   });
 
+  /** Deterministically derive the ULID randomness part from an epochMs value. */
+  const deriveUlidRandomnessFromEpoch = (epochMs: number): string => {
+    const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+    const randomnessLength = 26 - ULID_TIMESTAMP_LENGTH;
+    let state = epochMs >>> 0;
+    let result = "";
+
+    for (let i = 0; i < randomnessLength; i += 1) {
+      // Simple deterministic LCG to spread bits from epochMs
+      state = (state * 1664525 + 1013904223) >>> 0;
+      result += alphabet[state % 32];
+    }
+
+    return result;
+  };
+
   /** Update ULID output from epochMs. Returns error message on failure. */
   const updateUlidFromEpoch = (epochMs: number): string | null => {
     try {
       const tsPart = encodeTime(epochMs, ULID_TIMESTAMP_LENGTH);
-      const rsPart = ulid().slice(ULID_TIMESTAMP_LENGTH);
+      const rsPart = deriveUlidRandomnessFromEpoch(epochMs);
       outputs.update(tsPart, rsPart, epochMs);
       success = true;
       return null;
@@ -259,8 +275,8 @@
       inputUlid.errorMessage = "";
       success = true;
 
-      const err = updateUuid7FromEpoch(epochMs);
-      if (err) inputUlid.errorMessage = err;
+      // Generate UUID v7 output; any failure should not be treated as a ULID input error.
+      updateUuid7FromEpoch(epochMs);
     } catch (e: unknown) {
       clearAll();
       if (e instanceof Error) inputUlid.errorMessage = e.message;
@@ -280,8 +296,8 @@
       inputUuid7.errorMessage = "";
       successUuid7 = true;
 
-      const err = updateUlidFromEpoch(decoded.epochMs);
-      if (err) inputUuid7.errorMessage = err;
+      // Generate ULID output; any failure should not be treated as a UUID v7 input error.
+      updateUlidFromEpoch(decoded.epochMs);
     } catch (e: unknown) {
       clearAll();
       if (e instanceof Error) inputUuid7.errorMessage = e.message;
@@ -339,7 +355,7 @@
   <div class="group">
     <div class="input-row">
       <label for="ulid-input">ULID</label>
-      {#if inputUlid.value}
+      {#if inputUlid.value && (lastInput === "ulid" || inputUlid.errorMessage)}
         <span class="badge" class:badge-valid={lastInput === "ulid" && success && !inputUlid.errorMessage} class:badge-invalid={lastInput === "ulid" && inputUlid.errorMessage}>
           {lastInput === "ulid" && inputUlid.errorMessage ? "Invalid" : lastInput === "ulid" && success ? "Valid" : ""}
         </span>

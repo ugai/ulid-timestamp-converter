@@ -157,6 +157,7 @@ body[dark-theme] a {
 body[dark-theme] a:any-link.button {
   background-color: var(--gray90);
   color: var(--gray10);
+  border: 1px solid var(--gray70);
 }
 
 body[dark-theme] a:any-link.button:hover {
