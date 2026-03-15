@@ -425,65 +425,73 @@
     </div>
   </div>
 
-  <details open>
-    <summary><span class="summary-heading">Timestamp</span></summary>
-    <div class="group output-section" class:output-active={timestampSuccess}>
-      <dl class="margin-top-0">
-        <dt>Unix Timestamp <span class="smaller">(in milliseconds)</span></dt>
-        <dd class="mono dd-copyable">
-          {sharedTimestamp.epochInMs}
-          {#if sharedTimestamp.epochInMs}
-            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.epochInMs, "epoch")} aria-label="Copy Unix timestamp">
-              {lastCopied === "epoch" ? "Copied!" : "Copy"}
-            </button>
-          {/if}
-        </dd>
-        <dt>Date <span class="smaller">(Local, default format)</span></dt>
-        <dd class="mono dd-copyable">
-          {sharedTimestamp.dateLocalDefault}
-          {#if sharedTimestamp.dateLocalDefault}
-            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateLocalDefault, "dateDefault")} aria-label="Copy local date (default)">
-              {lastCopied === "dateDefault" ? "Copied!" : "Copy"}
-            </button>
-          {/if}
-        </dd>
-        <dt>Date <span class="smaller">(Local, numeric format)</span></dt>
-        <dd class="mono dd-copyable">
-          {sharedTimestamp.dateLocalNumeric}
-          {#if sharedTimestamp.dateLocalNumeric}
-            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateLocalNumeric, "dateNumeric")} aria-label="Copy local date (numeric)">
-              {lastCopied === "dateNumeric" ? "Copied!" : "Copy"}
-            </button>
-          {/if}
-        </dd>
-        <dt>Date <span class="smaller">(UTC, ISO-8601)</span></dt>
-        <dd class="mono dd-copyable">
-          {sharedTimestamp.dateUtcISO}
-          {#if sharedTimestamp.dateUtcISO}
-            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateUtcISO, "dateISO")} aria-label="Copy UTC ISO-8601 date">
-              {lastCopied === "dateISO" ? "Copied!" : "Copy"}
-            </button>
-          {/if}
-        </dd>
-      </dl>
-    </div>
-  </details>
+  <section class="results-section output-section" class:output-active={timestampSuccess}>
+    <h2 class="results-heading">Results</h2>
+    <dl class="margin-top-0">
+      <dt>ULID</dt>
+      <dd class="mono dd-copyable">
+        <span class="ulid-part-timestamp">{outputs.ulidTimestampPart}</span
+        ><span class="ulid-part-random">{outputs.ulidRandomnessPart}</span>
+        {#if outputs.ulidTimestampPart}
+          <button class="copy-btn" onclick={() => copyToClipboard(outputs.ulidTimestampPart + outputs.ulidRandomnessPart, "ulid")} aria-label="Copy ULID">
+            {lastCopied === "ulid" ? "Copied!" : "Copy"}
+          </button>
+        {/if}
+      </dd>
+      <dt>UUID v7</dt>
+      <dd class="mono dd-copyable">
+        <span class="uuid7-part-timestamp">{outputsUuid7.timestampHex.slice(0, 8)}{outputsUuid7.timestampHex.length > 8 ? "-" : ""}{outputsUuid7.timestampHex.slice(8, 12)}</span
+        >{#if outputsUuid7.uuid7Formatted}-7{outputsUuid7.randA}-{outputsUuid7.variantNibble}{outputsUuid7.randB.slice(0, 3)}-{outputsUuid7.randB.slice(3)}{/if}
+        {#if outputsUuid7.uuid7Formatted}
+          <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.uuid7Formatted, "uuid7")} aria-label="Copy UUID v7">
+            {lastCopied === "uuid7" ? "Copied!" : "Copy"}
+          </button>
+        {/if}
+      </dd>
+      <dt>Unix Timestamp <span class="smaller">(ms)</span></dt>
+      <dd class="mono dd-copyable">
+        {sharedTimestamp.epochInMs}
+        {#if sharedTimestamp.epochInMs}
+          <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.epochInMs, "epoch")} aria-label="Copy Unix timestamp">
+            {lastCopied === "epoch" ? "Copied!" : "Copy"}
+          </button>
+        {/if}
+      </dd>
+      <dt>Date <span class="smaller">(Local)</span></dt>
+      <dd class="mono dd-copyable">
+        {sharedTimestamp.dateLocalNumeric}
+        {#if sharedTimestamp.dateLocalNumeric}
+          <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateLocalNumeric, "dateNumeric")} aria-label="Copy local date">
+            {lastCopied === "dateNumeric" ? "Copied!" : "Copy"}
+          </button>
+        {/if}
+      </dd>
+      <dt>Date <span class="smaller">(Local, default format)</span></dt>
+      <dd class="mono dd-copyable">
+        {sharedTimestamp.dateLocalDefault}
+        {#if sharedTimestamp.dateLocalDefault}
+          <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateLocalDefault, "dateDefault")} aria-label="Copy local date (default)">
+            {lastCopied === "dateDefault" ? "Copied!" : "Copy"}
+          </button>
+        {/if}
+      </dd>
+      <dt>Date <span class="smaller">(UTC, ISO-8601)</span></dt>
+      <dd class="mono dd-copyable">
+        {sharedTimestamp.dateUtcISO}
+        {#if sharedTimestamp.dateUtcISO}
+          <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateUtcISO, "dateISO")} aria-label="Copy UTC ISO-8601 date">
+            {lastCopied === "dateISO" ? "Copied!" : "Copy"}
+          </button>
+        {/if}
+      </dd>
+    </dl>
+  </section>
 
-  <details open>
-    <summary><span class="summary-heading">ULID Output</span></summary>
-    <div class="group output-section" class:output-active={success}>
+  <details open class="output-section" class:output-active={success}>
+    <summary><span class="summary-heading">ULID Details</span></summary>
+    <div class="details-content">
       <dl class="margin-top-0">
-        <dt>ULID</dt>
-        <dd class="mono dd-copyable">
-          <span class="ulid-part-timestamp">{outputs.ulidTimestampPart}</span
-          ><span class="ulid-part-random">{outputs.ulidRandomnessPart}</span>
-          {#if outputs.ulidTimestampPart}
-            <button class="copy-btn" onclick={() => copyToClipboard(outputs.ulidTimestampPart + outputs.ulidRandomnessPart, "ulid")} aria-label="Copy ULID">
-              {lastCopied === "ulid" ? "Copied!" : "Copy"}
-            </button>
-          {/if}
-        </dd>
-        <dt>ULID Timestamp</dt>
+        <dt>Timestamp Part</dt>
         <dd class="mono ulid-part-timestamp dd-copyable">
           {outputs.ulidTimestampPart}
           {#if outputs.ulidTimestampPart}
@@ -493,7 +501,6 @@
           {/if}
         </dd>
       </dl>
-
       {#if success}
         <div class="table-wrapper">
           <table>
@@ -548,20 +555,10 @@
     </div>
   </details>
 
-  <details open>
-    <summary><span class="summary-heading">UUID v7 Output</span></summary>
-    <div class="group output-section" class:output-active={successUuid7}>
+  <details open class="output-section" class:output-active={successUuid7}>
+    <summary><span class="summary-heading">UUID v7 Details</span></summary>
+    <div class="details-content">
       <dl class="margin-top-0">
-        <dt>UUID v7</dt>
-        <dd class="mono dd-copyable">
-          <span class="uuid7-part-timestamp">{outputsUuid7.timestampHex.slice(0, 8)}{outputsUuid7.timestampHex.length > 8 ? "-" : ""}{outputsUuid7.timestampHex.slice(8, 12)}</span
-          >{#if outputsUuid7.uuid7Formatted}-7{outputsUuid7.randA}-{outputsUuid7.variantNibble}{outputsUuid7.randB.slice(0, 3)}-{outputsUuid7.randB.slice(3)}{/if}
-          {#if outputsUuid7.uuid7Formatted}
-            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.uuid7Formatted, "uuid7")} aria-label="Copy UUID v7">
-              {lastCopied === "uuid7" ? "Copied!" : "Copy"}
-            </button>
-          {/if}
-        </dd>
         <dt>Timestamp Hex</dt>
         <dd class="mono uuid7-part-timestamp dd-copyable">
           {outputsUuid7.timestampHex}
@@ -599,7 +596,6 @@
           {/if}
         </dd>
       </dl>
-
       {#if successUuid7}
         <div class="table-wrapper">
           <table>
@@ -671,18 +667,41 @@
     position: relative;
   }
 
+  .results-section {
+    margin-top: 16px;
+  }
+
+  .results-heading {
+    font-size: 1em;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.6;
+  }
+
   .summary-heading {
-    font-size: 1.5em;
-    font-weight: bold;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   summary {
     cursor: pointer;
-    margin-bottom: 4px;
+    opacity: 0.6;
+  }
+
+  summary:hover {
+    opacity: 1;
   }
 
   details {
-    margin-top: 16px;
+    margin-top: 12px;
+  }
+
+  .details-content {
+    padding-top: 6px;
   }
 
   .input-row {
@@ -746,7 +765,7 @@
 
   caption {
     caption-side: top;
-    text-align: left;
+    text-align: center;
     font-size: 0.85em;
     opacity: 0.6;
     padding-bottom: 4px;
