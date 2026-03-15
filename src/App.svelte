@@ -355,10 +355,10 @@
   <div class="group">
     <div class="input-row">
       <label for="ulid-input">ULID</label>
-      {#if inputUlid.value && (lastInput === "ulid" || inputUlid.errorMessage)}
-        <span class="badge" role="status" class:badge-valid={lastInput === "ulid" && success && !inputUlid.errorMessage} class:badge-invalid={lastInput === "ulid" && inputUlid.errorMessage}>
-          {lastInput === "ulid" && inputUlid.errorMessage ? "✕ Invalid" : lastInput === "ulid" && success ? "✓ Valid" : ""}
-        </span>
+      {#if inputUlid.errorMessage}
+        <span class="badge badge-invalid" role="status">✕ Invalid</span>
+      {:else if inputUlid.value && lastInput === "ulid" && success}
+        <span class="badge badge-valid" role="status">✓ Valid</span>
       {/if}
       <div class="input-controls">
         <input
@@ -387,10 +387,10 @@
     </div>
     <div class="input-row">
       <label for="uuid7-input">UUID v7</label>
-      {#if inputUuid7.value && (lastInput === "uuid7" || inputUuid7.errorMessage)}
-        <span class="badge" role="status" class:badge-valid={lastInput === "uuid7" && successUuid7 && !inputUuid7.errorMessage} class:badge-invalid={lastInput === "uuid7" && inputUuid7.errorMessage}>
-          {lastInput === "uuid7" && inputUuid7.errorMessage ? "✕ Invalid" : lastInput === "uuid7" && successUuid7 ? "✓ Valid" : ""}
-        </span>
+      {#if inputUuid7.errorMessage}
+        <span class="badge badge-invalid" role="status">✕ Invalid</span>
+      {:else if inputUuid7.value && lastInput === "uuid7" && successUuid7}
+        <span class="badge badge-valid" role="status">✓ Valid</span>
       {/if}
       <div class="input-controls">
         <input
@@ -419,10 +419,10 @@
     </div>
     <div class="input-row">
       <label for="datetime-input">Date</label>
-      {#if inputDateTime.value && (lastInput === "datetime" || inputDateTime.errorMessage)}
-        <span class="badge" role="status" class:badge-valid={lastInput === "datetime" && (success || successUuid7) && !inputDateTime.errorMessage} class:badge-invalid={lastInput === "datetime" && inputDateTime.errorMessage}>
-          {lastInput === "datetime" && inputDateTime.errorMessage ? "✕ Invalid" : lastInput === "datetime" && (success || successUuid7) ? "✓ Valid" : ""}
-        </span>
+      {#if inputDateTime.errorMessage}
+        <span class="badge badge-invalid" role="status">✕ Invalid</span>
+      {:else if inputDateTime.value && lastInput === "datetime" && (success || successUuid7)}
+        <span class="badge badge-valid" role="status">✓ Valid</span>
       {/if}
       <div class="input-controls">
         <input
