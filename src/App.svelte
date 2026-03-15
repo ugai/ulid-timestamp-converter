@@ -337,87 +337,105 @@
 
   <h2>Input</h2>
   <div class="group">
-    <div>
+    <div class="input-row">
       <label for="ulid-input">ULID</label>
-      <input
-        id="ulid-input"
-        class="mono"
-        type="text"
-        size="40"
-        placeholder="Enter ULID here"
-        bind:value={inputUlid.value}
-        oninput={() => lastInput = "ulid"}
-      />
+      {#if inputUlid.value}
+        <span class="badge" class:badge-valid={lastInput === "ulid" && success && !inputUlid.errorMessage} class:badge-invalid={lastInput === "ulid" && inputUlid.errorMessage}>
+          {lastInput === "ulid" && inputUlid.errorMessage ? "Invalid" : lastInput === "ulid" && success ? "Valid" : ""}
+        </span>
+      {/if}
+      <div class="input-controls">
+        <input
+          id="ulid-input"
+          class="mono"
+          type="text"
+          size="40"
+          placeholder="Enter ULID here"
+          bind:value={inputUlid.value}
+          oninput={() => lastInput = "ulid"}
+        />
+        <button
+          class="button"
+          onclick={() => { inputUlid.clear(); lastInput = "ulid"; }}
+          disabled={!inputUlid.value}>Clear</button
+        >
+        <button class="button" onclick={() => { inputUlid.set_random_value(); lastInput = "ulid"; }}
+          >Generate</button
+        >
+      </div>
       {#if inputUlid.errorMessage}
         <span class="error-message" aria-live="polite">
           {inputUlid.errorMessage}
         </span>
       {/if}
-
-      <button
-        class="button"
-        onclick={() => { inputUlid.clear(); lastInput = "ulid"; }}
-        disabled={!inputUlid.value}>Clear</button
-      >
-      <button class="button" onclick={() => { inputUlid.set_random_value(); lastInput = "ulid"; }}
-        >Generate</button
-      >
     </div>
-    <div>
+    <div class="input-row">
       <label for="uuid7-input">UUID v7</label>
-      <input
-        id="uuid7-input"
-        class="mono"
-        type="text"
-        size="40"
-        placeholder="Enter UUID v7 here"
-        bind:value={inputUuid7.value}
-        oninput={() => lastInput = "uuid7"}
-      />
+      {#if inputUuid7.value}
+        <span class="badge" class:badge-valid={lastInput === "uuid7" && successUuid7 && !inputUuid7.errorMessage} class:badge-invalid={lastInput === "uuid7" && inputUuid7.errorMessage}>
+          {lastInput === "uuid7" && inputUuid7.errorMessage ? "Invalid" : lastInput === "uuid7" && successUuid7 ? "Valid" : ""}
+        </span>
+      {/if}
+      <div class="input-controls">
+        <input
+          id="uuid7-input"
+          class="mono"
+          type="text"
+          size="40"
+          placeholder="Enter UUID v7 here"
+          bind:value={inputUuid7.value}
+          oninput={() => lastInput = "uuid7"}
+        />
+        <button
+          class="button"
+          onclick={() => { inputUuid7.clear(); lastInput = "uuid7"; }}
+          disabled={!inputUuid7.value}>Clear</button
+        >
+        <button class="button" onclick={() => { inputUuid7.set_random_value(); lastInput = "uuid7"; }}
+          >Generate</button
+        >
+      </div>
       {#if inputUuid7.errorMessage}
         <span class="error-message" aria-live="polite">
           {inputUuid7.errorMessage}
         </span>
       {/if}
-
-      <button
-        class="button"
-        onclick={() => { inputUuid7.clear(); lastInput = "uuid7"; }}
-        disabled={!inputUuid7.value}>Clear</button
-      >
-      <button class="button" onclick={() => { inputUuid7.set_random_value(); lastInput = "uuid7"; }}
-        >Generate</button
-      >
     </div>
-    <div>
+    <div class="input-row">
       <label for="datetime-input">Date</label>
-      <input
-        id="datetime-input"
-        type="datetime-local"
-        step="0.001"
-        bind:value={inputDateTime.value}
-        oninput={() => lastInput = "datetime"}
-      />
+      {#if inputDateTime.value}
+        <span class="badge" class:badge-valid={lastInput === "datetime" && (success || successUuid7) && !inputDateTime.errorMessage} class:badge-invalid={lastInput === "datetime" && inputDateTime.errorMessage}>
+          {lastInput === "datetime" && inputDateTime.errorMessage ? "Invalid" : lastInput === "datetime" && (success || successUuid7) ? "Valid" : ""}
+        </span>
+      {/if}
+      <div class="input-controls">
+        <input
+          id="datetime-input"
+          type="datetime-local"
+          step="0.001"
+          bind:value={inputDateTime.value}
+          oninput={() => lastInput = "datetime"}
+        />
+        <button
+          class="button"
+          onclick={() => { inputDateTime.clear(); lastInput = "datetime"; }}
+          disabled={!inputDateTime.value}>Clear</button
+        >
+        <button class="button" onclick={() => { inputDateTime.set_current_date(); lastInput = "datetime"; }}
+          >Now</button
+        >
+      </div>
       {#if inputDateTime.errorMessage}
         <span class="error-message" aria-live="polite">
           {inputDateTime.errorMessage}
         </span>
       {/if}
-
-      <button
-        class="button"
-        onclick={() => { inputDateTime.clear(); lastInput = "datetime"; }}
-        disabled={!inputDateTime.value}>Clear</button
-      >
-      <button class="button" onclick={() => { inputDateTime.set_current_date(); lastInput = "datetime"; }}
-        >Now</button
-      >
     </div>
   </div>
 
   <details open>
     <summary><span class="summary-heading">ULID Output</span></summary>
-    <div class="group">
+    <div class="group output-section" class:output-active={success}>
       <dl class="margin-top-0">
         <dt>ULID</dt>
         <dd class="mono">
@@ -489,7 +507,7 @@
 
   <details open>
     <summary><span class="summary-heading">UUID v7 Output</span></summary>
-    <div class="group">
+    <div class="group output-section" class:output-active={successUuid7}>
       <dl class="margin-top-0">
         <dt>UUID v7</dt>
         <dd class="mono">
@@ -557,6 +575,9 @@
   .theme-toggle {
     float: right;
     margin: 0 8px;
+    display: flex;
+    gap: 4px;
+    align-items: center;
   }
 
   .summary-heading {
@@ -569,6 +590,40 @@
     margin-bottom: 4px;
   }
 
+  details {
+    margin-top: 16px;
+  }
+
+  .input-row {
+    margin-bottom: 12px;
+  }
+
+  .input-row:last-child {
+    margin-bottom: 0;
+  }
+
+  .input-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .input-controls input {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .output-section {
+    transition: opacity 0.25s ease;
+    opacity: 0.5;
+  }
+
+  .output-active {
+    opacity: 1;
+  }
+
   table {
     border-collapse: collapse;
   }
@@ -576,7 +631,7 @@
   th,
   td {
     border: 1px solid gray;
-    padding: 0.3em;
+    padding: 0.4em 0.6em;
     white-space: nowrap;
   }
 
@@ -586,12 +641,13 @@
   }
 
   label {
-    font-weight: bold;
+    font-weight: 600;
   }
 
   dl {
     display: grid;
     grid-template-columns: max-content auto;
+    gap: 2px 12px;
   }
 
   dt span.smaller {
@@ -613,5 +669,6 @@
 
   dd {
     grid-column-start: 2;
+    transition: color 0.2s ease;
   }
 </style>
