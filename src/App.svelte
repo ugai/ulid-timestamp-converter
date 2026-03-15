@@ -387,7 +387,7 @@
     </div>
     <div class="input-row">
       <label for="uuid7-input">UUID v7</label>
-      {#if inputUuid7.value}
+      {#if inputUuid7.value && (lastInput === "uuid7" || inputUuid7.errorMessage)}
         <span class="badge" class:badge-valid={lastInput === "uuid7" && successUuid7 && !inputUuid7.errorMessage} class:badge-invalid={lastInput === "uuid7" && inputUuid7.errorMessage}>
           {lastInput === "uuid7" && inputUuid7.errorMessage ? "Invalid" : lastInput === "uuid7" && successUuid7 ? "Valid" : ""}
         </span>
@@ -419,7 +419,7 @@
     </div>
     <div class="input-row">
       <label for="datetime-input">Date</label>
-      {#if inputDateTime.value}
+      {#if inputDateTime.value && (lastInput === "datetime" || inputDateTime.errorMessage)}
         <span class="badge" class:badge-valid={lastInput === "datetime" && (success || successUuid7) && !inputDateTime.errorMessage} class:badge-invalid={lastInput === "datetime" && inputDateTime.errorMessage}>
           {lastInput === "datetime" && inputDateTime.errorMessage ? "Invalid" : lastInput === "datetime" && (success || successUuid7) ? "Valid" : ""}
         </span>
