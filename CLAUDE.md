@@ -30,3 +30,8 @@ Requires Deno 2.x. Tasks are defined in `package.json` and run via `deno task`.
 - Two collapsible output sections (ULID Output / UUID v7 Output) showing decoded timestamp in multiple formats plus encoding breakdown
 - Global styles in `public/global.css`; component styles scoped in `App.svelte`
 - Dark/light theme toggle via `body[dark-theme]` attribute
+
+## Message/Comment Language
+
+- All code comments must be written in English
+- All Git commit messages and GitHub comments must be written in English
