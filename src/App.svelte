@@ -38,7 +38,7 @@
     hour12: false,
   });
 
-  let lastInput: "ulid" | "uuid7" | "datetime" = $state("ulid");
+  let lastInput: "id" | "datetime" = $state("id");
 
   // Clipboard helper with brief "Copied!" feedback
   let lastCopied = $state("");
@@ -64,14 +64,20 @@
     }
   }
 
-  class UlidInputField extends InputFieldBase {
-    set_random_value() {
+  /** Unified input field for both ULID and UUID v7 */
+  class IdInputField extends InputFieldBase {
+    detectedFormat: "ulid" | "uuid7" | "" = $state("");
+
+    clear() {
+      super.clear();
+      this.detectedFormat = "";
+    }
+
+    set_random_ulid() {
       this.value = ulid();
     }
-  }
 
-  class Uuid7InputField extends InputFieldBase {
-    set_random_value() {
+    set_random_uuid7() {
       this.value = generateUuid7(Date.now());
     }
   }
@@ -190,8 +196,7 @@
     }
   }
 
-  const inputUlid = new UlidInputField();
-  const inputUuid7 = new Uuid7InputField();
+  const inputId = new IdInputField();
   const inputDateTime = new DateTimeInputField();
   const sharedTimestamp = new SharedTimestamp();
   const outputs = new OutputFields();
@@ -202,10 +207,8 @@
 
   // Cross-conversion: derive both outputs from whichever input was last changed
   $effect(() => {
-    if (lastInput === "ulid") {
-      convertUlidInput(inputUlid.value);
-    } else if (lastInput === "uuid7") {
-      convertUuid7Input(inputUuid7.value);
+    if (lastInput === "id") {
+      convertIdInput(inputId.value);
     } else {
       convertDateTimeInput(inputDateTime.value);
     }
@@ -264,47 +267,61 @@
     successUuid7 = false;
   };
 
-  const convertUlidInput = (v: string) => {
+  /**
+   * Detect whether the input looks like a UUID v7 (contains dashes or is 32 hex chars)
+   * and try parsing accordingly. Falls back to the other format on failure.
+   */
+  const convertIdInput = (v: string) => {
     if (!v) {
-      inputUlid.errorMessage = "";
+      inputId.errorMessage = "";
+      inputId.detectedFormat = "";
       clearAll();
       return;
     }
 
+    const looksLikeUuid = v.includes("-") || /^[0-9a-fA-F]{32}$/.test(v);
+
+    if (looksLikeUuid) {
+      // Try UUID v7 first, then fall back to ULID
+      if (tryConvertAsUuid7(v) || tryConvertAsUlid(v)) return;
+    } else {
+      // Try ULID first, then fall back to UUID v7
+      if (tryConvertAsUlid(v) || tryConvertAsUuid7(v)) return;
+    }
+
+    // Both failed
+    clearAll();
+    inputId.detectedFormat = "";
+    inputId.errorMessage = "Invalid ULID or UUID v7";
+  };
+
+  const tryConvertAsUlid = (v: string): boolean => {
     try {
       const { epochMs, timestampPart, randomnessPart } = decodeUlid(v);
       sharedTimestamp.update(epochMs);
       outputs.update(timestampPart, randomnessPart);
-      inputUlid.errorMessage = "";
+      inputId.errorMessage = "";
+      inputId.detectedFormat = "ulid";
       success = true;
-
-      // Generate UUID v7 output; any failure should not be treated as a ULID input error.
       updateUuid7FromEpoch(epochMs);
-    } catch (e: unknown) {
-      clearAll();
-      if (e instanceof Error) inputUlid.errorMessage = e.message;
+      return true;
+    } catch {
+      return false;
     }
   };
 
-  const convertUuid7Input = (v: string) => {
-    if (!v) {
-      inputUuid7.errorMessage = "";
-      clearAll();
-      return;
-    }
-
+  const tryConvertAsUuid7 = (v: string): boolean => {
     try {
       const decoded = decodeUuid7(v);
       sharedTimestamp.update(decoded.epochMs);
       outputsUuid7.update(decoded);
-      inputUuid7.errorMessage = "";
+      inputId.errorMessage = "";
+      inputId.detectedFormat = "uuid7";
       successUuid7 = true;
-
-      // Generate ULID output; any failure should not be treated as a UUID v7 input error.
       updateUlidFromEpoch(decoded.epochMs);
-    } catch (e: unknown) {
-      clearAll();
-      if (e instanceof Error) inputUuid7.errorMessage = e.message;
+      return true;
+    } catch {
+      return false;
     }
   };
 
@@ -334,7 +351,7 @@
 
   onMount(() => {
     dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    inputUlid.set_random_value();
+    inputId.set_random_ulid();
   });
 </script>
 
@@ -343,63 +360,36 @@
 
   <h2>Input</h2>
   <div class="group">
-    <div class="input-row" class:input-row-active={lastInput === "ulid"}>
-      <label for="ulid-input">ULID</label>
-      {#if inputUlid.value && lastInput === "ulid" && success}
-        <span class="badge badge-valid" role="status">&#x2713; Valid</span>
+    <div class="input-row" class:input-row-active={lastInput === "id"}>
+      <label for="id-input">ULID / UUID v7</label>
+      {#if inputId.value && lastInput === "id" && (success || successUuid7)}
+        <span class="badge badge-valid" role="status">&#x2713; Valid {inputId.detectedFormat === "ulid" ? "ULID" : "UUID v7"}</span>
       {/if}
       <div class="input-controls">
         <input
-          id="ulid-input"
+          id="id-input"
           class="mono"
-          class:input-error={!!inputUlid.errorMessage}
+          class:input-error={!!inputId.errorMessage}
           type="text"
-          placeholder="Enter ULID here"
-          bind:value={inputUlid.value}
-          oninput={() => lastInput = "ulid"}
+          placeholder="Enter ULID or UUID v7 here"
+          bind:value={inputId.value}
+          oninput={() => lastInput = "id"}
         />
         <button
           class="button"
-          onclick={() => { inputUlid.clear(); lastInput = "ulid"; }}
-          disabled={!inputUlid.value}>Clear</button
+          onclick={() => { inputId.clear(); lastInput = "id"; }}
+          disabled={!inputId.value}>Clear</button
         >
-        <button class="button" onclick={() => { inputUlid.set_random_value(); lastInput = "ulid"; }}
-          >New</button
+        <button class="button" onclick={() => { inputId.set_random_ulid(); lastInput = "id"; }}
+          >New ULID</button
         >
-      </div>
-      {#if inputUlid.errorMessage}
-        <span class="error-message" aria-live="polite">
-          {inputUlid.errorMessage}
-        </span>
-      {/if}
-    </div>
-    <div class="input-row" class:input-row-active={lastInput === "uuid7"}>
-      <label for="uuid7-input">UUID v7</label>
-      {#if inputUuid7.value && lastInput === "uuid7" && successUuid7}
-        <span class="badge badge-valid" role="status">&#x2713; Valid</span>
-      {/if}
-      <div class="input-controls">
-        <input
-          id="uuid7-input"
-          class="mono"
-          class:input-error={!!inputUuid7.errorMessage}
-          type="text"
-          placeholder="Enter UUID v7 here"
-          bind:value={inputUuid7.value}
-          oninput={() => lastInput = "uuid7"}
-        />
-        <button
-          class="button"
-          onclick={() => { inputUuid7.clear(); lastInput = "uuid7"; }}
-          disabled={!inputUuid7.value}>Clear</button
-        >
-        <button class="button" onclick={() => { inputUuid7.set_random_value(); lastInput = "uuid7"; }}
-          >New</button
+        <button class="button" onclick={() => { inputId.set_random_uuid7(); lastInput = "id"; }}
+          >New UUID v7</button
         >
       </div>
-      {#if inputUuid7.errorMessage}
+      {#if inputId.errorMessage}
         <span class="error-message" aria-live="polite">
-          {inputUuid7.errorMessage}
+          {inputId.errorMessage}
         </span>
       {/if}
     </div>
