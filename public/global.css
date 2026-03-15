@@ -17,8 +17,11 @@
   --red30: #ffb3b8;
   --blue60: #0f62fe;
   --blue40: #78a9ff;
-  --green50: #24a148;
-  --green40: #42be65;
+  --orange70: #a35200;
+  --orange40: #ffa500;
+  --green70: #0e6027;
+  --green30: #6fdc8c;
+  --gray50: #8d8d8d;
 }
 
 input,
@@ -98,7 +101,7 @@ a:any-link.button:hover {
 }
 
 .uuid7-part-timestamp {
-  color: #b85c00; /* darker orange for WCAG AA contrast on light background */
+  color: var(--orange70);
 }
 
 .badge {
@@ -113,7 +116,7 @@ a:any-link.button:hover {
 
 .badge-valid {
   background-color: #defbe6;
-  color: var(--green50);
+  color: var(--green70);
 }
 
 .badge-invalid {
@@ -173,12 +176,12 @@ body[dark-theme] .ulid-part-random {
 }
 
 body[dark-theme] .uuid7-part-timestamp {
-  color: orange;
+  color: var(--orange40);
 }
 
 body[dark-theme] .badge-valid {
   background-color: #044317;
-  color: var(--green40);
+  color: var(--green30);
 }
 
 body[dark-theme] .badge-invalid {
