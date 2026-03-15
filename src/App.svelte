@@ -42,12 +42,16 @@
 
   // Clipboard helper with brief "Copied!" feedback
   let lastCopied = $state("");
-  const copyToClipboard = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
-    lastCopied = key;
-    setTimeout(() => {
-      if (lastCopied === key) lastCopied = "";
-    }, 1500);
+  const copyToClipboard = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      lastCopied = key;
+      setTimeout(() => {
+        if (lastCopied === key) lastCopied = "";
+      }, 1500);
+    } catch {
+      // Clipboard API may fail in non-HTTPS contexts or without permission
+    }
   };
 
   abstract class InputFieldBase {
@@ -439,7 +443,7 @@
         <dd class="mono dd-copyable">
           {sharedTimestamp.epochInMs}
           {#if sharedTimestamp.epochInMs}
-            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.epochInMs, "epoch")} aria-label="Copy value">
+            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.epochInMs, "epoch")} aria-label="Copy Unix timestamp">
               {lastCopied === "epoch" ? "Copied!" : "Copy"}
             </button>
           {/if}
@@ -448,7 +452,7 @@
         <dd class="mono dd-copyable">
           {sharedTimestamp.dateLocalDefault}
           {#if sharedTimestamp.dateLocalDefault}
-            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateLocalDefault, "dateDefault")} aria-label="Copy value">
+            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateLocalDefault, "dateDefault")} aria-label="Copy local date (default)">
               {lastCopied === "dateDefault" ? "Copied!" : "Copy"}
             </button>
           {/if}
@@ -457,7 +461,7 @@
         <dd class="mono dd-copyable">
           {sharedTimestamp.dateLocalNumeric}
           {#if sharedTimestamp.dateLocalNumeric}
-            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateLocalNumeric, "dateNumeric")} aria-label="Copy value">
+            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateLocalNumeric, "dateNumeric")} aria-label="Copy local date (numeric)">
               {lastCopied === "dateNumeric" ? "Copied!" : "Copy"}
             </button>
           {/if}
@@ -466,7 +470,7 @@
         <dd class="mono dd-copyable">
           {sharedTimestamp.dateUtcISO}
           {#if sharedTimestamp.dateUtcISO}
-            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateUtcISO, "dateISO")} aria-label="Copy value">
+            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateUtcISO, "dateISO")} aria-label="Copy UTC ISO-8601 date">
               {lastCopied === "dateISO" ? "Copied!" : "Copy"}
             </button>
           {/if}
@@ -484,7 +488,7 @@
           <span class="ulid-part-timestamp">{outputs.ulidTimestampPart}</span
           ><span class="ulid-part-random">{outputs.ulidRandomnessPart}</span>
           {#if outputs.ulidTimestampPart}
-            <button class="copy-btn" onclick={() => copyToClipboard(outputs.ulidTimestampPart + outputs.ulidRandomnessPart, "ulid")} aria-label="Copy value">
+            <button class="copy-btn" onclick={() => copyToClipboard(outputs.ulidTimestampPart + outputs.ulidRandomnessPart, "ulid")} aria-label="Copy ULID">
               {lastCopied === "ulid" ? "Copied!" : "Copy"}
             </button>
           {/if}
@@ -493,7 +497,7 @@
         <dd class="mono ulid-part-timestamp dd-copyable">
           {outputs.ulidTimestampPart}
           {#if outputs.ulidTimestampPart}
-            <button class="copy-btn" onclick={() => copyToClipboard(outputs.ulidTimestampPart, "ulidTs")} aria-label="Copy value">
+            <button class="copy-btn" onclick={() => copyToClipboard(outputs.ulidTimestampPart, "ulidTs")} aria-label="Copy ULID timestamp">
               {lastCopied === "ulidTs" ? "Copied!" : "Copy"}
             </button>
           {/if}
@@ -563,7 +567,7 @@
           <span class="uuid7-part-timestamp">{outputsUuid7.timestampHex.slice(0, 8)}{outputsUuid7.timestampHex.length > 8 ? "-" : ""}{outputsUuid7.timestampHex.slice(8, 12)}</span
           >{#if outputsUuid7.uuid7Formatted}-7{outputsUuid7.randA}-{outputsUuid7.variantNibble}{outputsUuid7.randB.slice(0, 3)}-{outputsUuid7.randB.slice(3)}{/if}
           {#if outputsUuid7.uuid7Formatted}
-            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.uuid7Formatted, "uuid7")} aria-label="Copy value">
+            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.uuid7Formatted, "uuid7")} aria-label="Copy UUID v7">
               {lastCopied === "uuid7" ? "Copied!" : "Copy"}
             </button>
           {/if}
@@ -572,34 +576,34 @@
         <dd class="mono uuid7-part-timestamp dd-copyable">
           {outputsUuid7.timestampHex}
           {#if outputsUuid7.timestampHex}
-            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.timestampHex, "uuid7TsHex")} aria-label="Copy value">
+            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.timestampHex, "uuid7TsHex")} aria-label="Copy timestamp hex">
               {lastCopied === "uuid7TsHex" ? "Copied!" : "Copy"}
             </button>
           {/if}
         </dd>
-        <dt title="12 random bits following the version nibble (RFC 9562 Section 5.7)">rand_a</dt>
+        <dt>rand_a <button class="help-btn" title="12 random bits following the version nibble (RFC 9562 Section 5.7)" aria-label="About rand_a">?</button></dt>
         <dd class="mono dd-copyable">
           {outputsUuid7.randA}
           {#if outputsUuid7.randA}
-            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.randA, "randA")} aria-label="Copy value">
+            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.randA, "randA")} aria-label="Copy rand_a">
               {lastCopied === "randA" ? "Copied!" : "Copy"}
             </button>
           {/if}
         </dd>
-        <dt title="2-bit variant field (10xx) indicating RFC 9562 layout (Section 4.1)">variant</dt>
+        <dt>variant <button class="help-btn" title="2-bit variant field (10xx) indicating RFC 9562 layout (Section 4.1)" aria-label="About variant">?</button></dt>
         <dd class="mono dd-copyable">
           {outputsUuid7.variantNibble}
           {#if outputsUuid7.variantNibble}
-            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.variantNibble, "variant")} aria-label="Copy value">
+            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.variantNibble, "variant")} aria-label="Copy variant">
               {lastCopied === "variant" ? "Copied!" : "Copy"}
             </button>
           {/if}
         </dd>
-        <dt title="62 random bits for uniqueness within the same millisecond (RFC 9562 Section 5.7)">rand_b</dt>
+        <dt>rand_b <button class="help-btn" title="62 random bits for uniqueness within the same millisecond (RFC 9562 Section 5.7)" aria-label="About rand_b">?</button></dt>
         <dd class="mono dd-copyable">
           {outputsUuid7.randB}
           {#if outputsUuid7.randB}
-            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.randB, "randB")} aria-label="Copy value">
+            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.randB, "randB")} aria-label="Copy rand_b">
               {lastCopied === "randB" ? "Copied!" : "Copy"}
             </button>
           {/if}
@@ -791,9 +795,25 @@
     font-weight: normal;
   }
 
-  dt[title] {
-    text-decoration: underline dotted;
+  .help-btn {
+    all: unset;
     cursor: help;
+    font-size: 0.75em;
+    padding: 0 4px;
+    border-radius: 50%;
+    background-color: var(--gray20);
+    color: var(--gray70);
+    vertical-align: middle;
+  }
+
+  .help-btn:focus-visible {
+    outline: 2px solid var(--blue60);
+    outline-offset: 1px;
+  }
+
+  :global(body[dark-theme]) .help-btn {
+    background-color: var(--gray80);
+    color: var(--gray30);
   }
 
   label::after,
@@ -832,6 +852,11 @@
   .dd-copyable:hover .copy-btn,
   .copy-btn:focus-visible {
     opacity: 1;
+  }
+
+  .copy-btn:focus-visible {
+    outline: 2px solid var(--blue60);
+    outline-offset: 1px;
   }
 
   .copy-btn:hover {
