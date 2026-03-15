@@ -39,6 +39,7 @@ body {
   font-family: "Geist Variable", sans-serif;
   padding: 0 16px;
   max-width: 960px;
+  margin: 0 auto;
   background-color: var(--gray10);
   color: var(--gray100);
   line-height: 1.5;
@@ -54,6 +55,11 @@ body {
 
 .button:hover {
   background-color: var(--gray30);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .group {
@@ -124,6 +130,11 @@ a:any-link.button:hover {
   color: var(--red60);
 }
 
+input.input-error {
+  border-color: var(--red60);
+  outline-color: var(--red60);
+}
+
 /* dark theme */
 
 body[dark-theme] {
@@ -187,6 +198,11 @@ body[dark-theme] .badge-valid {
 body[dark-theme] .badge-invalid {
   background-color: #520408;
   color: var(--red30);
+}
+
+body[dark-theme] input.input-error {
+  border-color: var(--red30);
+  outline-color: var(--red30);
 }
 
 /* utils */

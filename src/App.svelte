@@ -40,6 +40,20 @@
 
   let lastInput: "ulid" | "uuid7" | "datetime" = $state("ulid");
 
+  // Clipboard helper with brief "Copied!" feedback
+  let lastCopied = $state("");
+  const copyToClipboard = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      lastCopied = key;
+      setTimeout(() => {
+        if (lastCopied === key) lastCopied = "";
+      }, 1500);
+    } catch {
+      // Clipboard API may fail in non-HTTPS contexts or without permission
+    }
+  };
+
   abstract class InputFieldBase {
     value: string = $state("");
     errorMessage: string = $state("");
@@ -70,14 +84,32 @@
     }
   }
 
-  class OutputFields {
-    ulidTimestampPart: string = $state("");
-    ulidRandomnessPart: string = $state("");
-
+  // Shared timestamp fields displayed once in the Timestamp section
+  class SharedTimestamp {
     epochInMs: string = $state("");
     dateLocalDefault: string = $state("");
     dateLocalNumeric: string = $state("");
     dateUtcISO: string = $state("");
+
+    clear() {
+      this.epochInMs = "";
+      this.dateLocalDefault = "";
+      this.dateLocalNumeric = "";
+      this.dateUtcISO = "";
+    }
+
+    update(epochMs: number) {
+      const dt = new Date(epochMs);
+      this.epochInMs = epochMs.toString();
+      this.dateLocalDefault = dt.toString();
+      this.dateLocalNumeric = defaultDateTimeFormat.format(dt);
+      this.dateUtcISO = dt.toISOString();
+    }
+  }
+
+  class OutputFields {
+    ulidTimestampPart: string = $state("");
+    ulidRandomnessPart: string = $state("");
 
     base32Values: string[] = $state([]);
     decValues: number[] = $state([]);
@@ -89,11 +121,6 @@
       this.ulidTimestampPart = "";
       this.ulidRandomnessPart = "";
 
-      this.epochInMs = "";
-      this.dateLocalDefault = "";
-      this.dateLocalNumeric = "";
-      this.dateUtcISO = "";
-
       this.base32Values = [];
       this.decValues = [];
       this.binValues = [];
@@ -101,19 +128,10 @@
       this.hexAll = "";
     }
 
-    update(ulidTimestamp: string, ulidRandomness: string, epochMs: number) {
+    update(ulidTimestamp: string, ulidRandomness: string) {
       this.ulidTimestampPart = ulidTimestamp;
       this.ulidRandomnessPart = ulidRandomness;
-      this._updateDateOutputs(epochMs);
       this._updateEncodingOutputs(ulidTimestamp);
-    }
-
-    private _updateDateOutputs(epochMs: number) {
-      const dt = new Date(epochMs);
-      this.epochInMs = epochMs.toString();
-      this.dateLocalDefault = dt.toString();
-      this.dateLocalNumeric = defaultDateTimeFormat.format(dt);
-      this.dateUtcISO = dt.toISOString();
     }
 
     private _updateEncodingOutputs(ulidTimestamp: string) {
@@ -133,11 +151,6 @@
     variantNibble: string = $state("");
     randB: string = $state("");
 
-    epochInMs: string = $state("");
-    dateLocalDefault: string = $state("");
-    dateLocalNumeric: string = $state("");
-    dateUtcISO: string = $state("");
-
     hexNibbles: string[] = $state([]);
     decValues: number[] = $state([]);
     binValues: string[] = $state([]);
@@ -150,11 +163,6 @@
       this.randA = "";
       this.variantNibble = "";
       this.randB = "";
-
-      this.epochInMs = "";
-      this.dateLocalDefault = "";
-      this.dateLocalNumeric = "";
-      this.dateUtcISO = "";
 
       this.hexNibbles = [];
       this.decValues = [];
@@ -169,16 +177,7 @@
       this.randA = decoded.randA;
       this.variantNibble = decoded.variantNibble;
       this.randB = decoded.randB;
-      this._updateDateOutputs(decoded.epochMs);
       this._updateEncodingOutputs(decoded.timestampHex);
-    }
-
-    private _updateDateOutputs(epochMs: number) {
-      const dt = new Date(epochMs);
-      this.epochInMs = epochMs.toString();
-      this.dateLocalDefault = dt.toString();
-      this.dateLocalNumeric = defaultDateTimeFormat.format(dt);
-      this.dateUtcISO = dt.toISOString();
     }
 
     private _updateEncodingOutputs(timestampHex: string) {
@@ -194,10 +193,12 @@
   const inputUlid = new UlidInputField();
   const inputUuid7 = new Uuid7InputField();
   const inputDateTime = new DateTimeInputField();
+  const sharedTimestamp = new SharedTimestamp();
   const outputs = new OutputFields();
   const outputsUuid7 = new Uuid7OutputFields();
   let success = $state(false);
   let successUuid7 = $state(false);
+  let timestampSuccess = $derived(success || successUuid7);
 
   // Cross-conversion: derive both outputs from whichever input was last changed
   $effect(() => {
@@ -231,7 +232,7 @@
     try {
       const tsPart = encodeTime(epochMs, ULID_TIMESTAMP_LENGTH);
       const rsPart = deriveUlidRandomnessFromEpoch(epochMs);
-      outputs.update(tsPart, rsPart, epochMs);
+      outputs.update(tsPart, rsPart);
       success = true;
       return null;
     } catch (e: unknown) {
@@ -256,6 +257,7 @@
   };
 
   const clearAll = () => {
+    sharedTimestamp.clear();
     outputs.clear();
     outputsUuid7.clear();
     success = false;
@@ -271,7 +273,8 @@
 
     try {
       const { epochMs, timestampPart, randomnessPart } = decodeUlid(v);
-      outputs.update(timestampPart, randomnessPart, epochMs);
+      sharedTimestamp.update(epochMs);
+      outputs.update(timestampPart, randomnessPart);
       inputUlid.errorMessage = "";
       success = true;
 
@@ -292,6 +295,7 @@
 
     try {
       const decoded = decodeUuid7(v);
+      sharedTimestamp.update(decoded.epochMs);
       outputsUuid7.update(decoded);
       inputUuid7.errorMessage = "";
       successUuid7 = true;
@@ -319,6 +323,7 @@
     }
     inputDateTime.errorMessage = "";
 
+    sharedTimestamp.update(epochMs);
     const errors: string[] = [];
     const ulidErr = updateUlidFromEpoch(epochMs);
     if (ulidErr) errors.push(ulidErr);
@@ -334,38 +339,21 @@
 </script>
 
 <main>
-  <div class="theme-toggle">
-    <button class="button" onclick={() => dark = !dark} aria-label="Toggle theme">
-      Light/Dark
-    </button>
-    <a
-      class="button"
-      target="_blank"
-      rel="noreferrer"
-      href={repositoryUrl}
-      aria-label="GitHub"
-    >
-      GitHub
-    </a>
-  </div>
-
   <h1 class="title">{siteTitle}</h1>
 
   <h2>Input</h2>
   <div class="group">
-    <div class="input-row">
+    <div class="input-row" class:input-row-active={lastInput === "ulid"}>
       <label for="ulid-input">ULID</label>
-      {#if inputUlid.errorMessage}
-        <span class="badge badge-invalid" role="status">✕ Invalid</span>
-      {:else if inputUlid.value && lastInput === "ulid" && success}
-        <span class="badge badge-valid" role="status">✓ Valid</span>
+      {#if inputUlid.value && lastInput === "ulid" && success}
+        <span class="badge badge-valid" role="status">&#x2713; Valid</span>
       {/if}
       <div class="input-controls">
         <input
           id="ulid-input"
           class="mono"
+          class:input-error={!!inputUlid.errorMessage}
           type="text"
-          size="40"
           placeholder="Enter ULID here"
           bind:value={inputUlid.value}
           oninput={() => lastInput = "ulid"}
@@ -376,7 +364,7 @@
           disabled={!inputUlid.value}>Clear</button
         >
         <button class="button" onclick={() => { inputUlid.set_random_value(); lastInput = "ulid"; }}
-          >Generate</button
+          >New</button
         >
       </div>
       {#if inputUlid.errorMessage}
@@ -385,19 +373,17 @@
         </span>
       {/if}
     </div>
-    <div class="input-row">
+    <div class="input-row" class:input-row-active={lastInput === "uuid7"}>
       <label for="uuid7-input">UUID v7</label>
-      {#if inputUuid7.errorMessage}
-        <span class="badge badge-invalid" role="status">✕ Invalid</span>
-      {:else if inputUuid7.value && lastInput === "uuid7" && successUuid7}
-        <span class="badge badge-valid" role="status">✓ Valid</span>
+      {#if inputUuid7.value && lastInput === "uuid7" && successUuid7}
+        <span class="badge badge-valid" role="status">&#x2713; Valid</span>
       {/if}
       <div class="input-controls">
         <input
           id="uuid7-input"
           class="mono"
+          class:input-error={!!inputUuid7.errorMessage}
           type="text"
-          size="40"
           placeholder="Enter UUID v7 here"
           bind:value={inputUuid7.value}
           oninput={() => lastInput = "uuid7"}
@@ -408,7 +394,7 @@
           disabled={!inputUuid7.value}>Clear</button
         >
         <button class="button" onclick={() => { inputUuid7.set_random_value(); lastInput = "uuid7"; }}
-          >Generate</button
+          >New</button
         >
       </div>
       {#if inputUuid7.errorMessage}
@@ -417,16 +403,15 @@
         </span>
       {/if}
     </div>
-    <div class="input-row">
+    <div class="input-row" class:input-row-active={lastInput === "datetime"}>
       <label for="datetime-input">Date</label>
-      {#if inputDateTime.errorMessage}
-        <span class="badge badge-invalid" role="status">✕ Invalid</span>
-      {:else if inputDateTime.value && lastInput === "datetime" && (success || successUuid7)}
-        <span class="badge badge-valid" role="status">✓ Valid</span>
+      {#if inputDateTime.value && lastInput === "datetime" && timestampSuccess}
+        <span class="badge badge-valid" role="status">&#x2713; Valid</span>
       {/if}
       <div class="input-controls">
         <input
           id="datetime-input"
+          class:input-error={!!inputDateTime.errorMessage}
           type="datetime-local"
           step="0.001"
           bind:value={inputDateTime.value}
@@ -446,77 +431,129 @@
           {inputDateTime.errorMessage}
         </span>
       {/if}
+      <span class="input-note">Millisecond precision depends on browser support</span>
     </div>
   </div>
+
+  <details open>
+    <summary><span class="summary-heading">Timestamp</span></summary>
+    <div class="group output-section" class:output-active={timestampSuccess}>
+      <dl class="margin-top-0">
+        <dt>Unix Timestamp <span class="smaller">(in milliseconds)</span></dt>
+        <dd class="mono dd-copyable">
+          {sharedTimestamp.epochInMs}
+          {#if sharedTimestamp.epochInMs}
+            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.epochInMs, "epoch")} aria-label="Copy Unix timestamp">
+              {lastCopied === "epoch" ? "Copied!" : "Copy"}
+            </button>
+          {/if}
+        </dd>
+        <dt>Date <span class="smaller">(Local, default format)</span></dt>
+        <dd class="mono dd-copyable">
+          {sharedTimestamp.dateLocalDefault}
+          {#if sharedTimestamp.dateLocalDefault}
+            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateLocalDefault, "dateDefault")} aria-label="Copy local date (default)">
+              {lastCopied === "dateDefault" ? "Copied!" : "Copy"}
+            </button>
+          {/if}
+        </dd>
+        <dt>Date <span class="smaller">(Local, numeric format)</span></dt>
+        <dd class="mono dd-copyable">
+          {sharedTimestamp.dateLocalNumeric}
+          {#if sharedTimestamp.dateLocalNumeric}
+            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateLocalNumeric, "dateNumeric")} aria-label="Copy local date (numeric)">
+              {lastCopied === "dateNumeric" ? "Copied!" : "Copy"}
+            </button>
+          {/if}
+        </dd>
+        <dt>Date <span class="smaller">(UTC, ISO-8601)</span></dt>
+        <dd class="mono dd-copyable">
+          {sharedTimestamp.dateUtcISO}
+          {#if sharedTimestamp.dateUtcISO}
+            <button class="copy-btn" onclick={() => copyToClipboard(sharedTimestamp.dateUtcISO, "dateISO")} aria-label="Copy UTC ISO-8601 date">
+              {lastCopied === "dateISO" ? "Copied!" : "Copy"}
+            </button>
+          {/if}
+        </dd>
+      </dl>
+    </div>
+  </details>
 
   <details open>
     <summary><span class="summary-heading">ULID Output</span></summary>
     <div class="group output-section" class:output-active={success}>
       <dl class="margin-top-0">
         <dt>ULID</dt>
-        <dd class="mono">
+        <dd class="mono dd-copyable">
           <span class="ulid-part-timestamp">{outputs.ulidTimestampPart}</span
           ><span class="ulid-part-random">{outputs.ulidRandomnessPart}</span>
+          {#if outputs.ulidTimestampPart}
+            <button class="copy-btn" onclick={() => copyToClipboard(outputs.ulidTimestampPart + outputs.ulidRandomnessPart, "ulid")} aria-label="Copy ULID">
+              {lastCopied === "ulid" ? "Copied!" : "Copy"}
+            </button>
+          {/if}
         </dd>
         <dt>ULID Timestamp</dt>
-        <dd class="mono ulid-part-timestamp">{outputs.ulidTimestampPart}</dd>
-        <dt>Unix Timestamp <span class="smaller">(in milliseconds)</span></dt>
-        <dd class="mono">{outputs.epochInMs}</dd>
-        <dt>Date <span class="smaller">(Local, default format)</span></dt>
-        <dd class="mono">{outputs.dateLocalDefault}</dd>
-        <dt>Date <span class="smaller">(Local, numeric format)</span></dt>
-        <dd class="mono">{outputs.dateLocalNumeric}</dd>
-        <dt>Date <span class="smaller">(UTC, ISO-8601)</span></dt>
-        <dd class="mono">{outputs.dateUtcISO}</dd>
+        <dd class="mono ulid-part-timestamp dd-copyable">
+          {outputs.ulidTimestampPart}
+          {#if outputs.ulidTimestampPart}
+            <button class="copy-btn" onclick={() => copyToClipboard(outputs.ulidTimestampPart, "ulidTs")} aria-label="Copy ULID timestamp">
+              {lastCopied === "ulidTs" ? "Copied!" : "Copy"}
+            </button>
+          {/if}
+        </dd>
       </dl>
 
       {#if success}
-        <table>
-          <thead class="text-center">
-            <tr>
-              <th class="no-border"></th>
-              <th colspan={ULID_TIMESTAMP_LENGTH}>Timestamp (48-bit)</th>
-            </tr>
-          </thead>
-          <tbody class="mono">
-            <tr>
-              <th>
-                Base 32
-                <a
-                  target="_blank"
-                  href="http://www.crockford.com/base32.html"
-                  rel="noreferrer">?</a
+        <div class="table-wrapper">
+          <table>
+            <caption>ULID timestamp encoding breakdown</caption>
+            <thead class="text-center">
+              <tr>
+                <th class="no-border"></th>
+                <th colspan={ULID_TIMESTAMP_LENGTH}>Timestamp (48-bit)</th>
+              </tr>
+            </thead>
+            <tbody class="mono">
+              <tr>
+                <th>
+                  Base 32
+                  <a
+                    target="_blank"
+                    href="http://www.crockford.com/base32.html"
+                    rel="noreferrer">?</a
+                  >
+                </th>
+                {#each outputs.base32Values as base32Char}
+                  <td class="text-right ulid-part-timestamp">{base32Char}</td>
+                {/each}
+              </tr>
+              <tr>
+                <th>Decimal</th>
+                {#each outputs.decValues as dec}
+                  <td class="text-right">{dec}</td>
+                {/each}
+              </tr>
+              <tr>
+                <th rowspan="2">Binary</th>
+                {#each outputs.binValues as bin}
+                  <td class="text-right small">{bin}</td>
+                {/each}
+              </tr>
+              <tr>
+                <td class="text-center small" colspan={ULID_TIMESTAMP_LENGTH}
+                  >{outputs.binAll}</td
                 >
-              </th>
-              {#each outputs.base32Values as base32Char}
-                <td class="text-right ulid-part-timestamp">{base32Char}</td>
-              {/each}
-            </tr>
-            <tr>
-              <th>Decimal</th>
-              {#each outputs.decValues as dec}
-                <td class="text-right">{dec}</td>
-              {/each}
-            </tr>
-            <tr>
-              <th rowspan="2">Binary</th>
-              {#each outputs.binValues as bin}
-                <td class="text-right small">{bin}</td>
-              {/each}
-            </tr>
-            <tr>
-              <td class="text-center small" colspan={ULID_TIMESTAMP_LENGTH}
-                >{outputs.binAll}</td
-              >
-            </tr>
-            <tr>
-              <th>Hexadecimal</th>
-              <td class="text-center small" colspan={ULID_TIMESTAMP_LENGTH}
-                >{outputs.hexAll}</td
-              >
-            </tr>
-          </tbody>
-        </table>
+              </tr>
+              <tr>
+                <th>Hexadecimal</th>
+                <td class="text-center small" colspan={ULID_TIMESTAMP_LENGTH}
+                  >{outputs.hexAll}</td
+                >
+              </tr>
+            </tbody>
+          </table>
+        </div>
       {/if}
     </div>
   </details>
@@ -526,74 +563,122 @@
     <div class="group output-section" class:output-active={successUuid7}>
       <dl class="margin-top-0">
         <dt>UUID v7</dt>
-        <dd class="mono">
+        <dd class="mono dd-copyable">
           <span class="uuid7-part-timestamp">{outputsUuid7.timestampHex.slice(0, 8)}{outputsUuid7.timestampHex.length > 8 ? "-" : ""}{outputsUuid7.timestampHex.slice(8, 12)}</span
           >{#if outputsUuid7.uuid7Formatted}-7{outputsUuid7.randA}-{outputsUuid7.variantNibble}{outputsUuid7.randB.slice(0, 3)}-{outputsUuid7.randB.slice(3)}{/if}
+          {#if outputsUuid7.uuid7Formatted}
+            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.uuid7Formatted, "uuid7")} aria-label="Copy UUID v7">
+              {lastCopied === "uuid7" ? "Copied!" : "Copy"}
+            </button>
+          {/if}
         </dd>
         <dt>Timestamp Hex</dt>
-        <dd class="mono uuid7-part-timestamp">{outputsUuid7.timestampHex}</dd>
-        <dt>rand_a</dt>
-        <dd class="mono">{outputsUuid7.randA}</dd>
-        <dt>variant</dt>
-        <dd class="mono">{outputsUuid7.variantNibble}</dd>
-        <dt>rand_b</dt>
-        <dd class="mono">{outputsUuid7.randB}</dd>
-        <dt>Unix Timestamp <span class="smaller">(in milliseconds)</span></dt>
-        <dd class="mono">{outputsUuid7.epochInMs}</dd>
-        <dt>Date <span class="smaller">(Local, default format)</span></dt>
-        <dd class="mono">{outputsUuid7.dateLocalDefault}</dd>
-        <dt>Date <span class="smaller">(Local, numeric format)</span></dt>
-        <dd class="mono">{outputsUuid7.dateLocalNumeric}</dd>
-        <dt>Date <span class="smaller">(UTC, ISO-8601)</span></dt>
-        <dd class="mono">{outputsUuid7.dateUtcISO}</dd>
+        <dd class="mono uuid7-part-timestamp dd-copyable">
+          {outputsUuid7.timestampHex}
+          {#if outputsUuid7.timestampHex}
+            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.timestampHex, "uuid7TsHex")} aria-label="Copy timestamp hex">
+              {lastCopied === "uuid7TsHex" ? "Copied!" : "Copy"}
+            </button>
+          {/if}
+        </dd>
+        <dt>rand_a <abbr class="help-hint" title="12 random bits following the version nibble (RFC 9562 Section 5.7)">?</abbr></dt>
+        <dd class="mono dd-copyable">
+          {outputsUuid7.randA}
+          {#if outputsUuid7.randA}
+            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.randA, "randA")} aria-label="Copy rand_a">
+              {lastCopied === "randA" ? "Copied!" : "Copy"}
+            </button>
+          {/if}
+        </dd>
+        <dt>variant <abbr class="help-hint" title="2-bit variant field (10xx) indicating RFC 9562 layout (Section 4.1)">?</abbr></dt>
+        <dd class="mono dd-copyable">
+          {outputsUuid7.variantNibble}
+          {#if outputsUuid7.variantNibble}
+            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.variantNibble, "variant")} aria-label="Copy variant">
+              {lastCopied === "variant" ? "Copied!" : "Copy"}
+            </button>
+          {/if}
+        </dd>
+        <dt>rand_b <abbr class="help-hint" title="62 random bits for uniqueness within the same millisecond (RFC 9562 Section 5.7)">?</abbr></dt>
+        <dd class="mono dd-copyable">
+          {outputsUuid7.randB}
+          {#if outputsUuid7.randB}
+            <button class="copy-btn" onclick={() => copyToClipboard(outputsUuid7.randB, "randB")} aria-label="Copy rand_b">
+              {lastCopied === "randB" ? "Copied!" : "Copy"}
+            </button>
+          {/if}
+        </dd>
       </dl>
 
       {#if successUuid7}
-        <table>
-          <thead class="text-center">
-            <tr>
-              <th class="no-border"></th>
-              <th colspan={UUID7_TIMESTAMP_HEX_LENGTH}>Timestamp (48-bit)</th>
-            </tr>
-          </thead>
-          <tbody class="mono">
-            <tr>
-              <th>Hexadecimal</th>
-              {#each outputsUuid7.hexNibbles as hex}
-                <td class="text-right uuid7-part-timestamp">{hex}</td>
-              {/each}
-            </tr>
-            <tr>
-              <th>Decimal</th>
-              {#each outputsUuid7.decValues as dec}
-                <td class="text-right">{dec}</td>
-              {/each}
-            </tr>
-            <tr>
-              <th rowspan="2">Binary</th>
-              {#each outputsUuid7.binValues as bin}
-                <td class="text-right small">{bin}</td>
-              {/each}
-            </tr>
-            <tr>
-              <td class="text-center small" colspan={UUID7_TIMESTAMP_HEX_LENGTH}
-                >{outputsUuid7.binAll}</td
-              >
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-wrapper">
+          <table>
+            <caption>UUID v7 timestamp encoding breakdown</caption>
+            <thead class="text-center">
+              <tr>
+                <th class="no-border"></th>
+                <th colspan={UUID7_TIMESTAMP_HEX_LENGTH}>Timestamp (48-bit)</th>
+              </tr>
+            </thead>
+            <tbody class="mono">
+              <tr>
+                <th>Hexadecimal</th>
+                {#each outputsUuid7.hexNibbles as hex}
+                  <td class="text-right uuid7-part-timestamp">{hex}</td>
+                {/each}
+              </tr>
+              <tr>
+                <th>Decimal</th>
+                {#each outputsUuid7.decValues as dec}
+                  <td class="text-right">{dec}</td>
+                {/each}
+              </tr>
+              <tr>
+                <th rowspan="2">Binary</th>
+                {#each outputsUuid7.binValues as bin}
+                  <td class="text-right small">{bin}</td>
+                {/each}
+              </tr>
+              <tr>
+                <td class="text-center small" colspan={UUID7_TIMESTAMP_HEX_LENGTH}
+                  >{outputsUuid7.binAll}</td
+                >
+              </tr>
+            </tbody>
+          </table>
+        </div>
       {/if}
     </div>
   </details>
+
+  <div class="toolbar">
+    <button class="button" onclick={() => dark = !dark} aria-label="Toggle theme">
+      Light/Dark
+    </button>
+    <a
+      class="button"
+      target="_blank"
+      rel="noreferrer"
+      href={repositoryUrl}
+      aria-label="GitHub"
+    >
+      GitHub
+    </a>
+  </div>
 </main>
 
 <style>
-  .theme-toggle {
-    float: right;
-    margin: 0 8px;
+  .toolbar {
+    position: absolute;
+    top: 8px;
+    right: 8px;
     display: flex;
     gap: 4px;
     align-items: center;
+  }
+
+  main {
+    position: relative;
   }
 
   .summary-heading {
@@ -612,6 +697,20 @@
 
   .input-row {
     margin-bottom: 12px;
+    padding: 8px;
+    border-left: 3px solid transparent;
+    border-radius: 4px;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+  }
+
+  .input-row-active {
+    border-left-color: var(--blue60);
+    background-color: rgba(15, 98, 254, 0.04);
+  }
+
+  :global(body[dark-theme]) .input-row-active {
+    border-left-color: var(--blue40);
+    background-color: rgba(120, 169, 255, 0.06);
   }
 
   .input-row:last-child {
@@ -631,6 +730,13 @@
     min-width: 200px;
   }
 
+  .input-note {
+    display: block;
+    font-size: 0.8em;
+    margin-top: 4px;
+    opacity: 0.6;
+  }
+
   .output-section {
     transition: opacity 0.25s ease;
     opacity: 0.5;
@@ -640,8 +746,20 @@
     opacity: 1;
   }
 
+  .table-wrapper {
+    overflow-x: auto;
+  }
+
   table {
     border-collapse: collapse;
+  }
+
+  caption {
+    caption-side: top;
+    text-align: left;
+    font-size: 0.85em;
+    opacity: 0.6;
+    padding-bottom: 4px;
   }
 
   th,
@@ -677,6 +795,22 @@
     font-weight: normal;
   }
 
+  .help-hint {
+    cursor: help;
+    font-size: 0.75em;
+    padding: 0 4px;
+    border-radius: 50%;
+    background-color: var(--gray20);
+    color: var(--gray70);
+    vertical-align: middle;
+    text-decoration: none;
+  }
+
+  :global(body[dark-theme]) .help-hint {
+    background-color: var(--gray80);
+    color: var(--gray30);
+  }
+
   label::after,
   dt::after {
     content: ": ";
@@ -686,5 +820,52 @@
   dd {
     grid-column-start: 2;
     transition: color 0.2s ease;
+  }
+
+  .dd-copyable {
+    position: relative;
+  }
+
+  .copy-btn {
+    all: unset;
+    cursor: pointer;
+    font-size: 0.7em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    opacity: 0;
+    background-color: var(--gray20);
+    color: var(--gray70);
+    transition: opacity 0.15s ease;
+  }
+
+  :global(body[dark-theme]) .copy-btn {
+    background-color: var(--gray80);
+    color: var(--gray30);
+  }
+
+  .dd-copyable:hover .copy-btn,
+  .dd-copyable:focus-within .copy-btn,
+  .copy-btn:focus-visible {
+    opacity: 1;
+  }
+
+  .copy-btn:focus-visible {
+    outline: 2px solid var(--blue60);
+    outline-offset: 1px;
+  }
+
+  @media (hover: none) {
+    .copy-btn {
+      opacity: 1;
+    }
+  }
+
+  .copy-btn:hover {
+    background-color: var(--gray30);
+  }
+
+  :global(body[dark-theme]) .copy-btn:hover {
+    background-color: var(--gray70);
   }
 </style>
