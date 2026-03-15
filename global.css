@@ -1,5 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans&display=swap");
+@import url("https://cdn.jsdelivr.net/npm/@fontsource-variable/geist@5/index.min.css");
+@import url("https://cdn.jsdelivr.net/npm/@fontsource-variable/geist-mono@5/index.min.css");
 
 :root {
   /*
@@ -17,34 +17,47 @@
   --red30: #ffb3b8;
   --blue60: #0f62fe;
   --blue40: #78a9ff;
+  --green50: #24a148;
+  --green40: #42be65;
 }
 
 input,
 button {
-  padding: 8px;
+  padding: 8px 12px;
   margin: 4px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: inherit;
 }
 
 /* light theme */
 
 body {
-  font-family: "IBM Plex Sans", sans-serif;
-  padding: 0 8px;
+  font-family: "Geist Variable", sans-serif;
+  padding: 0 16px;
   max-width: 960px;
   background-color: var(--gray10);
   color: var(--gray100);
+  line-height: 1.5;
 }
 
 .button {
   background-color: var(--gray20);
   color: var(--gray100);
-  border-width: 1px;
+  border: 1px solid var(--gray30);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.button:hover {
+  background-color: var(--gray30);
 }
 
 .group {
   border: 1px solid var(--gray30);
-  border-radius: 4px;
-  padding: 12px;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 8px;
 }
 
 .error-message {
@@ -61,8 +74,19 @@ a {
 }
 
 a:any-link.button {
+  display: inline-block;
   background-color: var(--gray10);
   color: var(--gray100);
+  text-decoration: none;
+  border: 1px solid var(--gray30);
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+a:any-link.button:hover {
+  background-color: var(--gray20);
 }
 
 .ulid-part-timestamp {
@@ -77,6 +101,26 @@ a:any-link.button {
   color: #b85c00; /* darker orange for WCAG AA contrast on light background */
 }
 
+.badge {
+  display: inline-block;
+  font-size: 0.75em;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.badge-valid {
+  background-color: #defbe6;
+  color: var(--green50);
+}
+
+.badge-invalid {
+  background-color: #fff1f1;
+  color: var(--red60);
+}
+
 /* dark theme */
 
 body[dark-theme] {
@@ -87,6 +131,11 @@ body[dark-theme] {
 body[dark-theme] .button {
   background-color: var(--gray80);
   color: var(--gray10);
+  border-color: var(--gray70);
+}
+
+body[dark-theme] .button:hover {
+  background-color: var(--gray70);
 }
 
 body[dark-theme] .group {
@@ -108,6 +157,11 @@ body[dark-theme] a {
 body[dark-theme] a:any-link.button {
   background-color: var(--gray90);
   color: var(--gray10);
+  border: 1px solid var(--gray70);
+}
+
+body[dark-theme] a:any-link.button:hover {
+  background-color: var(--gray80);
 }
 
 body[dark-theme] .ulid-part-timestamp {
@@ -122,10 +176,20 @@ body[dark-theme] .uuid7-part-timestamp {
   color: orange;
 }
 
+body[dark-theme] .badge-valid {
+  background-color: #044317;
+  color: var(--green40);
+}
+
+body[dark-theme] .badge-invalid {
+  background-color: #520408;
+  color: var(--red30);
+}
+
 /* utils */
 
 .mono {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: "Geist Mono Variable", monospace;
 }
 
 .margin-top-0 {
