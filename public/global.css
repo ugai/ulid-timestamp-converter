@@ -1,17 +1,5 @@
-@import url("https://cdn.jsdelivr.net/npm/@fontsource-variable/geist@5/index.min.css") layer;
-@import url("https://cdn.jsdelivr.net/npm/@fontsource-variable/geist-mono@5/index.min.css") layer;
-
-@font-face {
-  font-family: "Geist Variable";
-  font-display: swap;
-  src: local("Geist Variable");
-}
-
-@font-face {
-  font-family: "Geist Mono Variable";
-  font-display: swap;
-  src: local("Geist Mono Variable");
-}
+@import url("https://cdn.jsdelivr.net/npm/@fontsource-variable/geist@5/index.min.css");
+@import url("https://cdn.jsdelivr.net/npm/@fontsource-variable/geist-mono@5/index.min.css");
 
 :root {
   /*

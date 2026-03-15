@@ -581,7 +581,7 @@
             </button>
           {/if}
         </dd>
-        <dt>rand_a <button class="help-btn" title="12 random bits following the version nibble (RFC 9562 Section 5.7)" aria-label="About rand_a">?</button></dt>
+        <dt>rand_a <abbr class="help-hint" title="12 random bits following the version nibble (RFC 9562 Section 5.7)">?</abbr></dt>
         <dd class="mono dd-copyable">
           {outputsUuid7.randA}
           {#if outputsUuid7.randA}
@@ -590,7 +590,7 @@
             </button>
           {/if}
         </dd>
-        <dt>variant <button class="help-btn" title="2-bit variant field (10xx) indicating RFC 9562 layout (Section 4.1)" aria-label="About variant">?</button></dt>
+        <dt>variant <abbr class="help-hint" title="2-bit variant field (10xx) indicating RFC 9562 layout (Section 4.1)">?</abbr></dt>
         <dd class="mono dd-copyable">
           {outputsUuid7.variantNibble}
           {#if outputsUuid7.variantNibble}
@@ -599,7 +599,7 @@
             </button>
           {/if}
         </dd>
-        <dt>rand_b <button class="help-btn" title="62 random bits for uniqueness within the same millisecond (RFC 9562 Section 5.7)" aria-label="About rand_b">?</button></dt>
+        <dt>rand_b <abbr class="help-hint" title="62 random bits for uniqueness within the same millisecond (RFC 9562 Section 5.7)">?</abbr></dt>
         <dd class="mono dd-copyable">
           {outputsUuid7.randB}
           {#if outputsUuid7.randB}
@@ -795,8 +795,7 @@
     font-weight: normal;
   }
 
-  .help-btn {
-    all: unset;
+  .help-hint {
     cursor: help;
     font-size: 0.75em;
     padding: 0 4px;
@@ -804,14 +803,10 @@
     background-color: var(--gray20);
     color: var(--gray70);
     vertical-align: middle;
+    text-decoration: none;
   }
 
-  .help-btn:focus-visible {
-    outline: 2px solid var(--blue60);
-    outline-offset: 1px;
-  }
-
-  :global(body[dark-theme]) .help-btn {
+  :global(body[dark-theme]) .help-hint {
     background-color: var(--gray80);
     color: var(--gray30);
   }
@@ -850,6 +845,7 @@
   }
 
   .dd-copyable:hover .copy-btn,
+  .dd-copyable:focus-within .copy-btn,
   .copy-btn:focus-visible {
     opacity: 1;
   }
@@ -857,6 +853,12 @@
   .copy-btn:focus-visible {
     outline: 2px solid var(--blue60);
     outline-offset: 1px;
+  }
+
+  @media (hover: none) {
+    .copy-btn {
+      opacity: 1;
+    }
   }
 
   .copy-btn:hover {
