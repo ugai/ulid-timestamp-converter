@@ -665,23 +665,26 @@
 
   main {
     position: relative;
+    padding-bottom: 48px;
+  }
+
+  h2 {
+    font-size: 1em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .results-section {
-    margin-top: 16px;
+    margin-top: 24px;
   }
 
   .results-heading {
-    font-size: 1em;
-    font-weight: 600;
     margin: 0 0 8px 0;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    opacity: 0.6;
   }
 
   .summary-heading {
-    font-size: 0.85em;
+    font-size: 0.9em;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -689,15 +692,10 @@
 
   summary {
     cursor: pointer;
-    opacity: 0.6;
-  }
-
-  summary:hover {
-    opacity: 1;
   }
 
   details {
-    margin-top: 12px;
+    margin-top: 24px;
   }
 
   .details-content {
